@@ -1,0 +1,25 @@
+# 数据和缓存目录
+data/
+output/
+hf_cache/
+
+# 依赖文件
+deps/*.whl
+
+# 环境配置（敏感信息）
+.env
+
+# Python缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store

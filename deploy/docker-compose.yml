@@ -1,0 +1,114 @@
+version: '3.9'
+
+services:
+  alpamayo-r1:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: alpamayo-r1:latest
+    container_name: alpamayo-r1
+    
+    # GPU 支持（必需）
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    
+    # 环境变量
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+      # OBS配置（华为云对象存储）
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_USE_HTTPS=${S3_USE_HTTPS:-0}
+      - ACCESS_KEY_ID=${ACCESS_KEY_ID}
+      - SECRET_ACCESS_KEY=${SECRET_ACCESS_KEY}
+      # HuggingFace 缓存目录
+      - HF_HOME=/data/huggingface
+      - TRANSFORMERS_CACHE=/data/huggingface
+      # 性能优化
+      - OPENBLAS_NUM_THREADS=1
+      - OMP_NUM_THREADS=1
+      # 离线模式（如果已下载模型）
+      # - HF_HUB_OFFLINE=1
+      # - TRANSFORMERS_OFFLINE=1
+    
+    # 资源限制
+    ulimits:
+      nproc: 4096
+      memlock:
+        soft: -1
+        hard: -1
+    shm_size: '16g'
+    
+    # 挂载卷
+    volumes:
+      # 源代码（开发模式 - 可选）
+      - ../src:/app/src
+      - ../notebooks:/app/notebooks
+      # 数据目录
+      - ./data:/data
+      # 输出目录
+      - ./output:/output
+      # HuggingFace 缓存
+      - ./hf_cache:/data/huggingface
+      # 环境变量配置
+      - ../.env:/app/.env
+    
+    # 工作目录
+    working_dir: /workspace
+    
+    # 交互模式
+    stdin_open: true
+    tty: true
+    
+    # 保持运行
+    command: tail -f /dev/null
+
+  # Jupyter Notebook 服务（可选）
+  jupyter:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: alpamayo-r1:latest
+    container_name: alpamayo-r1-jupyter
+    
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_USE_HTTPS=${S3_USE_HTTPS:-0}
+      - ACCESS_KEY_ID=${ACCESS_KEY_ID}
+      - SECRET_ACCESS_KEY=${SECRET_ACCESS_KEY}
+      - HF_HOME=/data/huggingface
+      - TRANSFORMERS_CACHE=/data/huggingface
+    
+    ulimits:
+      nproc: 4096
+    shm_size: '16g'
+    
+    volumes:
+      - ../src:/app/src
+      - ../notebooks:/app/notebooks
+      - ./data:/data
+      - ./output:/output
+      - ./hf_cache:/data/huggingface
+      - ../.env:/app/.env
+    
+    ports:
+      - "8888:8888"
+    
+    working_dir: /app/notebooks
+    
+    command: jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token=''
