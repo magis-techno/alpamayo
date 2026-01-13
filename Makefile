@@ -10,7 +10,7 @@
 .DEFAULT_GOAL := help
 
 # 变量定义
-DOCKER_COMPOSE := docker compose -f deploy/docker-compose.yml
+DOCKER_COMPOSE := docker compose -f docker-compose.yml
 CONTAINER_NAME := alpamayo-r1
 JUPYTER_CONTAINER := alpamayo-r1-jupyter
 IMAGE_NAME := alpamayo-r1:latest
