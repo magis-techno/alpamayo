@@ -1,0 +1,771 @@
+# 场景分类体系 (Scenario Taxonomy)
+# 用于数据保护和CoC标注的统一场景框架
+# Version: 1.0.0
+
+metadata:
+  version: "1.0.0"
+  description: "统一场景分类体系，支持数据均衡去重和CoC标注"
+  created_at: "2026-01-14"
+  protection_granularity: "L2"  # 数据保护的主粒度
+
+# L1 大类定义
+l1_categories:
+  - id: cruising
+    name_zh: 巡航
+    name_en: Cruising
+    definition: 无明确交互的常规行驶
+    core_features:
+      - 跟车
+      - 速度保持
+      - 道路适应
+
+  - id: interaction
+    name_zh: 交互
+    name_en: Interaction
+    definition: 与动态交通参与者的博弈
+    core_features:
+      - cutin
+      - VRU
+      - 盲区
+      - 路口交互
+
+  - id: lane_change
+    name_zh: 换道
+    name_en: Lane Change
+    definition: 横向车道转移
+    core_features:
+      - 导航换道
+      - 效率换道
+      - 脱困换道
+
+  - id: intersection
+    name_zh: 路口
+    name_en: Intersection
+    definition: 路口内的转向和通行
+    core_features:
+      - 左转
+      - 右转
+      - U-turn
+      - 待行区
+
+  - id: obstacle_avoidance
+    name_zh: 避障
+    name_en: Obstacle Avoidance
+    definition: 对障碍物的绕行或刹停
+    core_features:
+      - 静态障碍
+      - 借道
+      - 道内避障
+
+  - id: special_facilities
+    name_zh: 特殊设施
+    name_en: Special Facilities
+    definition: 特定道路设施的通行
+    core_features:
+      - 收费站
+      - 环岛
+      - 闸机
+
+  - id: safety_critical
+    name_zh: 安全
+    name_en: Safety Critical
+    definition: AEB和紧急制动场景
+    core_features:
+      - 对车AEB
+      - 对VRU AEB
+
+  - id: special_environment
+    name_zh: 特殊环境
+    name_en: Special Environment
+    definition: 特殊道路或天气条件
+    core_features:
+      - 弯道
+      - 窄道
+      - 坡道
+      - 恶劣天气
+
+# L2 中类定义
+l2_scenarios:
+  # ============ 巡航 (Cruising) ============
+  cruising:
+    - id: set_speed_tracking
+      name_zh: 速度保持
+      name_en: Set Speed Tracking
+      parent: cruising
+      definition: 无约束下保持或达到目标速度
+      typical_conditions:
+        - 无前车或前车距离远
+        - 道路平直
+        - 无交通管制
+
+    - id: lead_following_highway
+      name_zh: 跟车-高速
+      name_en: Lead Following - Highway
+      parent: cruising
+      definition: 高速场景下对同向前车保持安全时距
+      typical_conditions:
+        - 车速 > 60 kph
+        - 存在同向前车
+        - 车道保持状态
+
+    - id: lead_following_congestion
+      name_zh: 跟车-拥堵
+      name_en: Lead Following - Congestion
+      parent: cruising
+      definition: 拥堵场景下对同向前车的跟随
+      typical_conditions:
+        - 车速 < 30 kph
+        - 频繁走停
+        - 车距较近
+
+    - id: resume_at_green
+      name_zh: 绿灯起步
+      name_en: Resume at Green
+      parent: cruising
+      definition: 红灯变绿后的起步
+      typical_conditions:
+        - 自车静止
+        - 信号灯由红/黄变绿
+        - 头车或非头车
+
+    - id: stop_for_red
+      name_zh: 红灯刹停
+      name_en: Stop for Red
+      parent: cruising
+      definition: 对红灯的减速刹停
+      typical_conditions:
+        - 信号灯为红色
+        - 自车需在停止线前刹停
+
+    - id: enter_wait_area
+      name_zh: 待行区进入
+      name_en: Enter Wait Area
+      parent: cruising
+      definition: 驶入路口待行区
+      typical_conditions:
+        - 存在待行区
+        - 待行区指示灯亮起
+
+    - id: exit_wait_area
+      name_zh: 待行区驶出
+      name_en: Exit Wait Area
+      parent: cruising
+      definition: 从待行区驶出
+      typical_conditions:
+        - 自车在待行区内
+        - 放行条件满足
+
+    - id: road_adaptation_curve
+      name_zh: 道路适应-弯道
+      name_en: Road Adaptation - Curve
+      parent: cruising
+      definition: 因弯道几何特征调整速度
+      typical_conditions:
+        - 前方有弯道
+        - 需要减速适应曲率
+
+  # ============ 交互 (Interaction) ============
+  interaction:
+    - id: cutin_urgent
+      name_zh: Cutin-紧急
+      name_en: Cutin - Urgent
+      parent: interaction
+      definition: 他车紧急切入自车前方，TTC较短
+      typical_conditions:
+        - TTC < 3s
+        - 他车速度差大
+        - 需要紧急减速
+
+    - id: cutin_slow
+      name_zh: Cutin-缓慢
+      name_en: Cutin - Slow
+      parent: interaction
+      definition: 他车缓慢切入自车前方
+      typical_conditions:
+        - TTC > 3s
+        - 他车速度差小
+        - 有充足反应时间
+
+    - id: cutin_large_vehicle
+      name_zh: Cutin-大车
+      name_en: Cutin - Large Vehicle
+      parent: interaction
+      definition: 大型车辆切入自车前方
+      typical_conditions:
+        - 切入车辆为大车/卡车/公交
+        - 视野遮挡明显
+
+    - id: cutin_from_stationary
+      name_zh: Cutin-起步
+      name_en: Cutin - From Stationary
+      parent: interaction
+      definition: 他车从静止状态起步切入
+      typical_conditions:
+        - 他车原本静止
+        - 拥堵或排队场景
+
+    - id: vru_crossing
+      name_zh: VRU-横穿
+      name_en: VRU - Crossing
+      parent: interaction
+      definition: VRU横向穿越道路
+      typical_conditions:
+        - VRU横向运动
+        - 穿越自车行驶路径
+
+    - id: vru_diagonal_crossing
+      name_zh: VRU-斜穿
+      name_en: VRU - Diagonal Crossing
+      parent: interaction
+      definition: VRU斜向穿越道路
+      typical_conditions:
+        - VRU斜向运动
+        - 路径与自车有交叉
+
+    - id: vru_hidden_emergence
+      name_zh: VRU-鬼探头
+      name_en: VRU - Hidden Emergence
+      parent: interaction
+      definition: VRU从遮挡物后突然出现
+      typical_conditions:
+        - 存在视觉遮挡
+        - VRU突然进入视野
+        - 反应时间短
+
+    - id: vru_crosswalk
+      name_zh: VRU-斑马线
+      name_en: VRU - Crosswalk
+      parent: interaction
+      definition: 斑马线处的VRU交互
+      typical_conditions:
+        - 存在斑马线
+        - VRU在或即将进入斑马线
+
+    - id: blind_spot_merge
+      name_zh: 盲区-Merge
+      name_en: Blind Spot - Merge
+      parent: interaction
+      definition: 汇入场景的盲区交互
+      typical_conditions:
+        - 匝道汇入
+        - 侧后方盲区有车辆
+
+    - id: blind_spot_dynamic_occlusion
+      name_zh: 盲区-动态遮挡
+      name_en: Blind Spot - Dynamic Occlusion
+      parent: interaction
+      definition: 动态目标造成的盲区
+      typical_conditions:
+        - 大车遮挡
+        - 被遮挡目标可能驶出
+
+    - id: blind_spot_unsignalized
+      name_zh: 盲区-无灯路口
+      name_en: Blind Spot - Unsignalized Intersection
+      parent: interaction
+      definition: 无信号路口的盲区交互
+      typical_conditions:
+        - 无信号灯控制
+        - 视野受限
+        - 可能有横向来车
+
+    - id: intersection_unprotected_left
+      name_zh: 路口交互-无保护左转
+      name_en: Intersection - Unprotected Left
+      parent: interaction
+      definition: 无保护左转时的交互
+      typical_conditions:
+        - 左转无专用信号
+        - 需要对向让行
+
+    - id: intersection_right_vs_straight
+      name_zh: 路口交互-右转对直行
+      name_en: Intersection - Right vs Straight
+      parent: interaction
+      definition: 右转与直行车辆的交互
+      typical_conditions:
+        - 自车右转
+        - 存在直行来车
+
+    - id: intersection_same_direction_turn
+      name_zh: 路口交互-同向转弯
+      name_en: Intersection - Same Direction Turn
+      parent: interaction
+      definition: 同向转弯车辆间的交互
+      typical_conditions:
+        - 多车道转弯
+        - 相邻车道车辆同向转弯
+
+    - id: other_vehicle_reversing
+      name_zh: 他车倒车
+      name_en: Other Vehicle Reversing
+      parent: interaction
+      definition: 他车倒车场景的交互
+      typical_conditions:
+        - 他车正在倒车
+        - 可能进入自车路径
+
+    - id: oncoming_traffic
+      name_zh: 逆向会车
+      name_en: Oncoming Traffic
+      parent: interaction
+      definition: 与对向来车的会车交互
+      typical_conditions:
+        - 存在对向来车
+        - 道路较窄或占道
+
+    - id: narrow_road_passing
+      name_zh: 窄路会车
+      name_en: Narrow Road Passing
+      parent: interaction
+      definition: 窄路场景的会车交互
+      typical_conditions:
+        - 道路宽度受限
+        - 需要避让或等待
+
+  # ============ 换道 (Lane Change) ============
+  lane_change:
+    - id: nav_lc_urban
+      name_zh: 导航换道-城区
+      name_en: Nav LC - Urban
+      parent: lane_change
+      definition: 城区道路的导航触发换道
+      typical_conditions:
+        - 城区道路
+        - 导航指示换道
+        - 准备驶离或转弯
+
+    - id: nav_lc_highway
+      name_zh: 导航换道-高速
+      name_en: Nav LC - Highway
+      parent: lane_change
+      definition: 高速道路的导航触发换道
+      typical_conditions:
+        - 高速公路
+        - 导航指示换道
+        - 准备驶离匝道
+
+    - id: merge_entry
+      name_zh: Merge汇入
+      name_en: Merge Entry
+      parent: lane_change
+      definition: 匝道汇入主路
+      typical_conditions:
+        - 从匝道进入主路
+        - 需要与主路车流交互
+
+    - id: efficiency_lc
+      name_zh: 效率换道
+      name_en: Efficiency LC
+      parent: lane_change
+      definition: 为提高行驶效率的换道
+      typical_conditions:
+        - 当前车道车速慢
+        - 邻道有更好的行驶条件
+
+    - id: overtake_lc
+      name_zh: 超车换道
+      name_en: Overtake LC
+      parent: lane_change
+      definition: 为超越前车的换道
+      typical_conditions:
+        - 前车速度低于期望速度
+        - 邻道有超车空间
+
+    - id: escape_lc
+      name_zh: 脱困换道
+      name_en: Escape LC
+      parent: lane_change
+      definition: 为脱离困境的换道
+      typical_conditions:
+        - 当前车道被阻塞
+        - 需要换道绕行
+
+    - id: lc_intent_unstable
+      name_zh: 换道意图不稳定
+      name_en: LC Intent Unstable
+      parent: lane_change
+      definition: 换道意图频繁变化
+      typical_conditions:
+        - 目标车道gap不稳定
+        - 换道条件反复变化
+
+    - id: lc_abort
+      name_zh: 换道中止
+      name_en: LC Abort
+      parent: lane_change
+      definition: 换道过程中取消并回中
+      typical_conditions:
+        - 换道已开始执行
+        - 发现不安全需要中止
+
+  # ============ 路口 (Intersection) ============
+  intersection:
+    - id: left_turn_normal
+      name_zh: 左转-常规
+      name_en: Left Turn - Normal
+      parent: intersection
+      definition: 标准的路口左转
+      typical_conditions:
+        - 有左转信号或许可
+        - 转弯路径正常
+
+    - id: left_turn_cut_corner
+      name_zh: 左转-内切
+      name_en: Left Turn - Cut Corner
+      parent: intersection
+      definition: 左转时内切弯道
+      typical_conditions:
+        - 转弯半径过小
+        - 可能压线或影响对向
+
+    - id: left_turn_wide_arc
+      name_zh: 左转-绕大弯
+      name_en: Left Turn - Wide Arc
+      parent: intersection
+      definition: 左转时绕行大弯
+      typical_conditions:
+        - 转弯半径过大
+        - 可能影响相邻车道
+
+    - id: right_turn_normal
+      name_zh: 右转-常规
+      name_en: Right Turn - Normal
+      parent: intersection
+      definition: 标准的路口右转
+      typical_conditions:
+        - 右转条件满足
+        - 转弯路径正常
+
+    - id: right_turn_cut_corner
+      name_zh: 右转-内切
+      name_en: Right Turn - Cut Corner
+      parent: intersection
+      definition: 右转时内切弯道
+      typical_conditions:
+        - 转弯半径过小
+        - 可能压内侧边界
+
+    - id: right_turn_low_speed
+      name_zh: 右转-速度低
+      name_en: Right Turn - Low Speed
+      parent: intersection
+      definition: 右转速度过低影响效率
+      typical_conditions:
+        - 转弯速度明显低于合理值
+        - 无明显障碍
+
+    - id: uturn_normal
+      name_zh: U-turn-常规
+      name_en: U-turn - Normal
+      parent: intersection
+      definition: 标准的U型掉头
+      typical_conditions:
+        - 有U-turn许可
+        - 掉头空间充足
+
+    - id: uturn_blind_spot
+      name_zh: U-turn-盲区
+      name_en: U-turn - Blind Spot
+      parent: intersection
+      definition: 有盲区的U-turn
+      typical_conditions:
+        - 掉头时视野受限
+        - 可能有盲区来车
+
+    - id: uturn_interaction
+      name_zh: U-turn-交互博弈
+      name_en: U-turn - Interaction
+      parent: intersection
+      definition: U-turn时与其他车辆的交互
+      typical_conditions:
+        - 存在对向或侧向来车
+        - 需要让行或博弈
+
+    - id: kturn
+      name_zh: K-turn
+      name_en: K-turn
+      parent: intersection
+      definition: 三点掉头
+      typical_conditions:
+        - 空间受限需要多次调整
+        - 包含前进和倒车
+
+    - id: guidance_line_following
+      name_zh: 引导线遵从
+      name_en: Guidance Line Following
+      parent: intersection
+      definition: 遵从路口引导线行驶
+      typical_conditions:
+        - 路口有引导线标识
+        - 需要沿引导线行驶
+
+  # ============ 避障 (Obstacle Avoidance) ============
+  obstacle_avoidance:
+    - id: static_obstacle_in_lane
+      name_zh: 静态障碍物-道内
+      name_en: Static Obstacle - In Lane
+      parent: obstacle_avoidance
+      definition: 道内静态障碍物的避让
+      typical_conditions:
+        - 障碍物在当前车道内
+        - 不跨线即可避让
+
+    - id: static_obstacle_borrow_lane
+      name_zh: 静态障碍物-借道
+      name_en: Static Obstacle - Borrow Lane
+      parent: obstacle_avoidance
+      definition: 需要借道绕行的静态障碍物
+      typical_conditions:
+        - 障碍物占据车道大部分
+        - 需要跨线绕行
+
+    - id: slow_stationary_vehicle
+      name_zh: 低速/静止车辆
+      name_en: Slow/Stationary Vehicle
+      parent: obstacle_avoidance
+      definition: 对低速或静止车辆的避让
+      typical_conditions:
+        - 前方有低速或静止车辆
+        - 需要绕行或刹停
+
+    - id: construction_zone
+      name_zh: 施工场景
+      name_en: Construction Zone
+      parent: obstacle_avoidance
+      definition: 施工区域的避障
+      typical_conditions:
+        - 存在施工标识或锥桶
+        - 车道可能变窄或封闭
+
+    - id: lead_cutout_reveal
+      name_zh: 前车cutout露出静止车
+      name_en: Lead Cutout Reveal
+      parent: obstacle_avoidance
+      definition: 前车cutout后露出静止障碍物
+      typical_conditions:
+        - 前车突然换道
+        - 露出前方静止障碍物
+        - 反应时间短
+
+    - id: vru_avoidance
+      name_zh: VRU避障
+      name_en: VRU Avoidance
+      parent: obstacle_avoidance
+      definition: 对VRU的避让
+      typical_conditions:
+        - VRU在或接近行驶路径
+        - 需要减速或偏移
+
+    - id: small_obstacle
+      name_zh: 小障碍物
+      name_en: Small Obstacle
+      parent: obstacle_avoidance
+      definition: 对小型障碍物的避让
+      typical_conditions:
+        - 障碍物体积小
+        - 如碎片、小动物等
+
+    - id: puddle_pothole_avoidance
+      name_zh: 水坑/凹坑绕行
+      name_en: Puddle/Pothole Avoidance
+      parent: obstacle_avoidance
+      definition: 对水坑或凹坑的绕行
+      typical_conditions:
+        - 路面有积水或凹坑
+        - 需要偏移避让
+
+    - id: intersection_obstacle_avoidance
+      name_zh: 路口内避障
+      name_en: Intersection Obstacle Avoidance
+      parent: obstacle_avoidance
+      definition: 路口内部的避障
+      typical_conditions:
+        - 障碍物在路口范围内
+        - 避障同时需要完成通行
+
+  # ============ 特殊设施 (Special Facilities) ============
+  special_facilities:
+    - id: toll_etc_lane
+      name_zh: 收费站-ETC通道
+      name_en: Toll - ETC Lane
+      parent: special_facilities
+      definition: 通过ETC通道
+      typical_conditions:
+        - 选择ETC通道
+        - 不停车通行
+
+    - id: toll_manual_lane
+      name_zh: 收费站-人工通道
+      name_en: Toll - Manual Lane
+      parent: special_facilities
+      definition: 通过人工收费通道
+      typical_conditions:
+        - 选择人工通道
+        - 需要停车缴费
+
+    - id: toll_plaza_lane_selection
+      name_zh: 收费站-前广场选道
+      name_en: Toll - Plaza Lane Selection
+      parent: special_facilities
+      definition: 收费站前广场的通道选择
+      typical_conditions:
+        - 进入收费站前广场
+        - 需要选择目标通道
+
+    - id: toll_gate_passage
+      name_zh: 收费站-闸机通行
+      name_en: Toll - Gate Passage
+      parent: special_facilities
+      definition: 通过收费站闸机
+      typical_conditions:
+        - 通过闸机通道
+        - 等待闸杆抬起
+
+    - id: roundabout_entry_exit
+      name_zh: 环岛-汇入汇出
+      name_en: Roundabout - Entry/Exit
+      parent: special_facilities
+      definition: 环岛的进入和驶出
+      typical_conditions:
+        - 进入或离开环岛
+        - 与环岛内车流交互
+
+    - id: roundabout_lane_selection
+      name_zh: 环岛-选道
+      name_en: Roundabout - Lane Selection
+      parent: special_facilities
+      definition: 环岛内的车道选择
+      typical_conditions:
+        - 在环岛内行驶
+        - 根据出口选择车道
+
+    - id: gate_resume_after_open
+      name_zh: 闸机-抬杆起步
+      name_en: Gate - Resume After Open
+      parent: special_facilities
+      definition: 闸杆抬起后的起步
+      typical_conditions:
+        - 等待闸杆抬起
+        - 抬起后及时起步
+
+    - id: gate_turn_cut_corner
+      name_zh: 闸机-转弯内切
+      name_en: Gate - Turn Cut Corner
+      parent: special_facilities
+      definition: 闸机前转弯时内切
+      typical_conditions:
+        - 闸机前有转弯
+        - 转弯路径偏内
+
+  # ============ 安全 (Safety Critical) ============
+  safety_critical:
+    - id: aeb_vehicle
+      name_zh: AEB-对车
+      name_en: AEB - Vehicle
+      parent: safety_critical
+      definition: 对车辆触发AEB
+      typical_conditions:
+        - 与车辆碰撞风险高
+        - 触发紧急制动
+
+    - id: aeb_vru
+      name_zh: AEB-对VRU
+      name_en: AEB - VRU
+      parent: safety_critical
+      definition: 对VRU触发AEB
+      typical_conditions:
+        - 与VRU碰撞风险高
+        - 触发紧急制动
+
+    - id: aeb_large_irregular_vehicle
+      name_zh: AEB-大型车/异形车
+      name_en: AEB - Large/Irregular Vehicle
+      parent: safety_critical
+      definition: 对大型或异形车辆触发AEB
+      typical_conditions:
+        - 目标为大车、异形车
+        - 触发紧急制动
+
+    - id: emergency_maneuver
+      name_zh: 紧急避险
+      name_en: Emergency Maneuver
+      parent: safety_critical
+      definition: 紧急避险机动
+      typical_conditions:
+        - 存在紧急碰撞风险
+        - 执行紧急转向或制动
+
+  # ============ 特殊环境 (Special Environment) ============
+  special_environment:
+    - id: high_curvature_curve
+      name_zh: 大曲率弯道
+      name_en: High Curvature Curve
+      parent: special_environment
+      definition: 大曲率弯道的通行
+      typical_conditions:
+        - 道路曲率大
+        - 需要大幅减速
+
+    - id: narrow_road
+      name_zh: 窄道通行
+      name_en: Narrow Road
+      parent: special_environment
+      definition: 窄道的通行
+      typical_conditions:
+        - 道路宽度受限
+        - 两侧空间紧张
+
+    - id: slope
+      name_zh: 坡道通行
+      name_en: Slope
+      parent: special_environment
+      definition: 坡道的上下行
+      typical_conditions:
+        - 道路有明显坡度
+        - 需要调整动力输出
+
+    - id: tunnel
+      name_zh: 隧道
+      name_en: Tunnel
+      parent: special_environment
+      definition: 隧道内行驶
+      typical_conditions:
+        - 在隧道内
+        - 光照条件变化
+
+    - id: rural_road
+      name_zh: 乡村道路
+      name_en: Rural Road
+      parent: special_environment
+      definition: 乡村道路行驶
+      typical_conditions:
+        - 非铺装或路况较差
+        - 道路标识不完善
+
+    - id: adverse_weather_rain_fog
+      name_zh: 恶劣天气-雨雾
+      name_en: Adverse Weather - Rain/Fog
+      parent: special_environment
+      definition: 雨天或雾天行驶
+      typical_conditions:
+        - 降雨或大雾
+        - 能见度下降
+
+    - id: adverse_weather_snow
+      name_zh: 恶劣天气-积雪
+      name_en: Adverse Weather - Snow
+      parent: special_environment
+      definition: 积雪路面行驶
+      typical_conditions:
+        - 路面有积雪
+        - 附着力下降
+
+    - id: lighting_glare_low_light
+      name_zh: 光照异常-炫光/暗光
+      name_en: Lighting - Glare/Low Light
+      parent: special_environment
+      definition: 光照异常条件下行驶
+      typical_conditions:
+        - 强光直射或光照不足
+        - 视觉感知受影响

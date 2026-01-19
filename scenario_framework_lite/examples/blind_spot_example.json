@@ -1,0 +1,46 @@
+{
+  "version": "lite-1.0.0",
+  "clip_id": "clip_20260115_blindspot_001",
+  
+  "l1_scenario": "reactive_road",
+  "scenario_description": "无信号灯路口盲区，需要减速通过",
+  
+  "keyframe": {
+    "timestamp": "2026-01-15T14:22:10.000Z",
+    "frame_idx": 200,
+    "type": "proactive",
+    "range_start": "2026-01-15T14:22:08.000Z",
+    "range_end": "2026-01-15T14:22:14.000Z",
+    "keyframe_rationale": "从接近路口到通过路口的整个范围"
+  },
+  
+  "time_range": {
+    "start_timestamp": "2026-01-15T14:22:05.000Z",
+    "end_timestamp": "2026-01-15T14:22:17.000Z"
+  },
+  
+  "driving_decision": {
+    "longitudinal": "road_speed_adaptation",
+    "lateral": "lane_keeping",
+    "lateral_direction": null
+  },
+  
+  "critical_components": {
+    "primary_factors": [
+      "前方有无信号灯路口",
+      "右侧有建筑物遮挡视野",
+      "可能有横向来车或行人"
+    ],
+    "uncertainty": "high",
+    "uncertainty_reason": "右侧盲区存在，无法确认是否有来车或行人"
+  },
+  
+  "coc_trace": "前方有无信号灯路口，右侧建筑物遮挡了视野。由于存在盲区，可能有横向来车或行人，需要减速通过以预留足够反应时间。决策：减速通过，保持车道。",
+  
+  "metadata": {
+    "generation_method": "llm",
+    "llm_model": "gpt-4-turbo",
+    "confidence": 0.88,
+    "review_status": "approved"
+  }
+}

@@ -1,0 +1,882 @@
+# 关键帧规则定义 (Keyframe Rules)
+# 定义每个场景的标注时机和范围
+# Version: 1.0.0
+
+metadata:
+  version: "1.0.0"
+  description: "Keyframe规则定义，用于CoC标注中确定标注时机和范围"
+  reference: "Alpamayo-R1 Paper Table 3"
+  
+keyframe_types:
+  reactive:
+    description: "响应式场景 - ego必须立即适应其行为以响应特定事件"
+    keyframe_definition: "单一时间点，通常是动作发生前0.5秒"
+    annotation_scope: "keyframe前后各N秒的上下文"
+    
+  proactive:
+    description: "主动式场景 - ego需要主动评估和预判可能的机动调整"
+    keyframe_definition: "时间范围，从意图产生到动作完成"
+    annotation_scope: "整个keyframe range"
+
+# ============================================================
+# 巡航场景 (Cruising) Keyframe规则
+# ============================================================
+cruising_keyframes:
+  set_speed_tracking:
+    type: proactive
+    keyframe_range:
+      start: "进入无约束巡航状态"
+      end: "出现新的约束（前车、信号灯、弯道等）"
+    trigger_conditions:
+      - "无前车或前车距离 > 阈值"
+      - "道路平直"
+      - "无交通管制"
+    annotation_focus:
+      - 当前速度与目标速度的关系
+      - 道路限速信息
+
+  lead_following_highway:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始调整速度匹配前车"
+    trigger_conditions:
+      - "前车进入跟车范围"
+      - "前车速度变化导致需要调整"
+    annotation_focus:
+      - 前车类型和状态
+      - 当前跟车距离
+      - 速度差
+
+  lead_following_congestion:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始减速/加速响应前车"
+    trigger_conditions:
+      - "拥堵场景下前车状态变化"
+      - "走停模式切换"
+    annotation_focus:
+      - 前车运动状态
+      - 拥堵程度
+      - 跟车间距
+
+  resume_at_green:
+    type: reactive
+    keyframe_definition: "max(0.5s before ego开始加速, 信号灯变绿时刻)"
+    trigger_conditions:
+      - "信号灯由红/黄变绿"
+      - "ego处于静止或低速状态"
+    annotation_focus:
+      - 信号灯状态变化
+      - 前车是否存在及其状态
+      - 是否为头车
+
+  stop_for_red:
+    type: reactive
+    keyframe_definition: "max(0.5s before ego开始减速, 信号灯变红/黄时刻)"
+    trigger_conditions:
+      - "信号灯变红或变黄"
+      - "ego需要在停止线前刹停"
+    annotation_focus:
+      - 信号灯状态
+      - 到停止线距离
+      - 当前速度
+
+  enter_wait_area:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始驶入待行区"
+    trigger_conditions:
+      - "待行区指示灯亮起"
+      - "ego处于待行区入口"
+    annotation_focus:
+      - 待行区状态
+      - 主信号灯状态
+      - 前车情况
+
+  exit_wait_area:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始从待行区起步"
+    trigger_conditions:
+      - "放行条件满足"
+      - "ego在待行区内"
+    annotation_focus:
+      - 主信号灯状态
+      - 对向来车情况
+      - 前车情况
+
+  road_adaptation_curve:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始为弯道减速"
+    trigger_conditions:
+      - "前方检测到弯道"
+      - "当前速度需要调整"
+    annotation_focus:
+      - 弯道曲率
+      - 当前速度
+      - 道路状况
+
+# ============================================================
+# 交互场景 (Interaction) Keyframe规则
+# ============================================================
+interaction_keyframes:
+  cutin_urgent:
+    type: reactive
+    keyframe_definition: "min(他车开始偏离车道中心线, 他车打转向灯)"
+    trigger_conditions:
+      - "他车表现出切入意图"
+      - "TTC < 3s"
+    annotation_focus:
+      - 切入车辆类型和状态
+      - TTC
+      - 速度差
+      - 自车响应空间
+
+  cutin_slow:
+    type: reactive
+    keyframe_definition: "min(他车开始偏离车道中心线, 他车打转向灯)"
+    trigger_conditions:
+      - "他车表现出切入意图"
+      - "TTC >= 3s"
+    annotation_focus:
+      - 切入车辆类型和状态
+      - 切入速度
+      - 可用反应时间
+
+  cutin_large_vehicle:
+    type: reactive
+    keyframe_definition: "min(大车开始偏离车道中心线, 大车打转向灯)"
+    trigger_conditions:
+      - "大型车辆表现出切入意图"
+    annotation_focus:
+      - 车辆类型（卡车/公交/异形车）
+      - 视野遮挡程度
+      - 切入过程时长
+
+  cutin_from_stationary:
+    type: reactive
+    keyframe_definition: "他车从静止开始移动时刻"
+    trigger_conditions:
+      - "他车从静止状态起步"
+      - "起步方向进入自车路径"
+    annotation_focus:
+      - 他车起步意图
+      - 原静止位置
+      - 起步后的目标
+
+  vru_crossing:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始减速/避让"
+    trigger_conditions:
+      - "VRU开始横穿或已在横穿"
+      - "VRU路径与自车有交叉"
+    annotation_focus:
+      - VRU类型（行人/骑行者）
+      - VRU运动方向和速度
+      - 横穿位置（斑马线/非斑马线）
+
+  vru_diagonal_crossing:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始减速/避让"
+    trigger_conditions:
+      - "VRU斜向穿越道路"
+      - "路径与自车有交叉风险"
+    annotation_focus:
+      - VRU运动轨迹
+      - 预期交叉点
+      - VRU速度
+
+  vru_hidden_emergence:
+    type: reactive
+    keyframe_definition: "VRU首次进入视野的时刻"
+    trigger_conditions:
+      - "VRU从遮挡物后出现"
+      - "之前被遮挡不可见"
+    annotation_focus:
+      - 遮挡源（大车/建筑/停放车辆）
+      - VRU出现位置
+      - 可用反应时间
+      - uncertainty: high
+
+  vru_crosswalk:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始减速让行"
+    trigger_conditions:
+      - "VRU在斑马线上或即将进入"
+      - "自车接近斑马线"
+    annotation_focus:
+      - 斑马线位置
+      - VRU状态（等待/行进中）
+      - 是否有信号灯控制
+
+  blind_spot_merge:
+    type: proactive
+    keyframe_range:
+      start: "ego进入merge区域"
+      end: "merge完成或取消"
+    trigger_conditions:
+      - "匝道汇入场景"
+      - "侧后方存在盲区"
+    annotation_focus:
+      - 盲区范围
+      - 可能存在的目标
+      - 汇入gap情况
+      - uncertainty: high
+
+  blind_spot_dynamic_occlusion:
+    type: proactive
+    keyframe_range:
+      start: "动态遮挡开始形成"
+      end: "被遮挡区域完全可见"
+    trigger_conditions:
+      - "大车或其他目标造成视野遮挡"
+      - "被遮挡区域可能有目标驶出"
+    annotation_focus:
+      - 遮挡源类型和运动
+      - 被遮挡区域
+      - 潜在风险
+      - uncertainty: high
+
+  blind_spot_unsignalized:
+    type: proactive
+    keyframe_range:
+      start: "ego进入无灯路口影响区"
+      end: "通过路口或所有方向可见"
+    trigger_conditions:
+      - "无信号灯控制的路口"
+      - "视野受限"
+    annotation_focus:
+      - 路口类型
+      - 各方向可见性
+      - 潜在来车方向
+      - uncertainty: high
+
+  intersection_unprotected_left:
+    type: proactive
+    keyframe_range:
+      start: "ego进入左转等待位置"
+      end: "完成左转或放弃"
+    trigger_conditions:
+      - "无保护左转"
+      - "需要让行对向来车"
+    annotation_focus:
+      - 对向车流情况
+      - 可用gap
+      - 信号灯剩余时间
+
+  intersection_right_vs_straight:
+    type: proactive
+    keyframe_range:
+      start: "ego开始右转"
+      end: "右转完成"
+    trigger_conditions:
+      - "自车右转"
+      - "存在直行来车"
+    annotation_focus:
+      - 直行车辆距离和速度
+      - 右转半径
+      - 是否需要让行
+
+  intersection_same_direction_turn:
+    type: proactive
+    keyframe_range:
+      start: "多车同时进入转弯"
+      end: "转弯完成"
+    trigger_conditions:
+      - "相邻车道车辆同向转弯"
+    annotation_focus:
+      - 相邻车辆位置
+      - 各车转弯路径
+      - 可能的冲突点
+
+  other_vehicle_reversing:
+    type: reactive
+    keyframe_definition: "他车开始倒车移动的时刻"
+    trigger_conditions:
+      - "他车开始倒车"
+      - "倒车路径可能与自车冲突"
+    annotation_focus:
+      - 他车倒车意图
+      - 倒车路径
+      - 自车响应空间
+
+  oncoming_traffic:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始响应对向来车"
+    trigger_conditions:
+      - "对向来车接近"
+      - "道路宽度受限或对向占道"
+    annotation_focus:
+      - 对向车辆类型和速度
+      - 道路可用宽度
+      - 会车策略
+
+  narrow_road_passing:
+    type: proactive
+    keyframe_range:
+      start: "进入窄路区域"
+      end: "离开窄路区域"
+    trigger_conditions:
+      - "道路宽度受限"
+      - "存在会车需求"
+    annotation_focus:
+      - 道路宽度
+      - 对向/同向其他车辆
+      - 避让空间
+
+# ============================================================
+# 换道场景 (Lane Change) Keyframe规则
+# ============================================================
+lane_change_keyframes:
+  nav_lc_urban:
+    type: proactive
+    keyframe_range:
+      start: "routing command发出或换道意图产生"
+      end: "换道完成（横向稳定在目标车道）"
+    phases:
+      prepare:
+        start: "routing command发出"
+        end: "开始Gap Matching"
+        annotation_focus:
+          - 导航目标
+          - 剩余距离
+          - 目标车道车流
+      execute:
+        start: "开始偏离原车道中心线"
+        end: "进入目标车道50%"
+        annotation_focus:
+          - 目标车道gap
+          - 前后车距离
+          - 换道速度
+      complete:
+        start: "进入目标车道50%"
+        end: "目标车道居中稳定"
+        annotation_focus:
+          - 回中质量
+          - 与前后车距离
+    termination_criteria:
+      - "横向速度 < 0.1 m/s"
+      - "距目标车道中心线 < 0.3m"
+      - "持续时间 > 2s"
+
+  nav_lc_highway:
+    type: proactive
+    keyframe_range:
+      start: "routing command发出或换道意图产生"
+      end: "换道完成"
+    phases:
+      prepare:
+        start: "routing command发出"
+        end: "开始Gap Matching"
+      execute:
+        start: "开始偏离原车道中心线"
+        end: "进入目标车道50%"
+      complete:
+        start: "进入目标车道50%"
+        end: "目标车道居中稳定"
+    annotation_focus:
+      - 高速道路特点
+      - 车速较高
+      - gap要求更严格
+
+  merge_entry:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始偏离原车道中心线"
+    trigger_conditions:
+      - "从匝道进入主路"
+      - "需要与主路车流交互"
+    annotation_focus:
+      - 主路车流情况
+      - 汇入gap
+      - 速度匹配情况
+      - 加速车道剩余长度
+
+  efficiency_lc:
+    type: proactive
+    keyframe_range:
+      start: "效率换道意图产生（如前车速度低于阈值）"
+      end: "换道完成"
+    trigger_conditions:
+      - "当前车道效率不佳"
+      - "邻道有更好条件"
+    annotation_focus:
+      - 当前车道问题（慢车/拥堵）
+      - 目标车道优势
+      - 换道收益评估
+
+  overtake_lc:
+    type: proactive
+    keyframe_range:
+      start: "超车意图产生"
+      end: "超车完成并回到原车道（如需要）"
+    trigger_conditions:
+      - "前车速度慢"
+      - "需要超越"
+    annotation_focus:
+      - 被超车辆
+      - 超车条件
+      - 是否需要回原道
+
+  escape_lc:
+    type: proactive
+    keyframe_range:
+      start: "脱困需求产生"
+      end: "完成脱困换道"
+    trigger_conditions:
+      - "当前车道被阻塞"
+      - "需要换道绕行"
+    annotation_focus:
+      - 阻塞原因
+      - 脱困路径选择
+      - 目标车道条件
+
+  lc_intent_unstable:
+    type: proactive
+    keyframe_range:
+      start: "首次换道意图产生"
+      end: "最终决策确定（执行或放弃）"
+    trigger_conditions:
+      - "换道条件反复变化"
+      - "目标车道gap不稳定"
+    annotation_focus:
+      - 意图变化原因
+      - gap变化情况
+      - 最终决策
+
+  lc_abort:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始回中动作"
+    trigger_conditions:
+      - "换道已开始执行"
+      - "发现不安全需要中止"
+    annotation_focus:
+      - 中止原因
+      - 中止时的位置
+      - 回中过程
+
+# ============================================================
+# 路口场景 (Intersection) Keyframe规则
+# ============================================================
+intersection_keyframes:
+  left_turn_normal:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始转向（航向角开始变化）"
+    trigger_conditions:
+      - "ego进入左转执行阶段"
+    annotation_focus:
+      - 信号灯状态
+      - 对向来车
+      - 转弯路径
+
+  left_turn_cut_corner:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始转向"
+    trigger_conditions:
+      - "左转路径偏内"
+    annotation_focus:
+      - 内切程度
+      - 对向车道影响
+      - 转弯半径
+
+  left_turn_wide_arc:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始转向"
+    trigger_conditions:
+      - "左转路径偏外"
+    annotation_focus:
+      - 绕大弯程度
+      - 对相邻车道影响
+      - 转弯效率
+
+  right_turn_normal:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始转向"
+    trigger_conditions:
+      - "ego进入右转执行阶段"
+    annotation_focus:
+      - 右转条件
+      - VRU情况
+      - 转弯路径
+
+  right_turn_cut_corner:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始转向"
+    trigger_conditions:
+      - "右转路径偏内"
+    annotation_focus:
+      - 内切程度
+      - 对内侧边界的距离
+      - 压线风险
+
+  right_turn_low_speed:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始转向"
+    trigger_conditions:
+      - "右转速度明显偏低"
+    annotation_focus:
+      - 实际速度与合理速度对比
+      - 低速原因分析
+      - 效率影响
+
+  uturn_normal:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始转向"
+    trigger_conditions:
+      - "ego进入U-turn执行阶段"
+    annotation_focus:
+      - 掉头空间
+      - 掉头路径
+      - 需要的转向次数
+
+  uturn_blind_spot:
+    type: proactive
+    keyframe_range:
+      start: "ego进入U-turn准备位置"
+      end: "U-turn完成"
+    trigger_conditions:
+      - "掉头时存在盲区"
+    annotation_focus:
+      - 盲区范围
+      - 潜在风险
+      - 减速策略
+      - uncertainty: high
+
+  uturn_interaction:
+    type: proactive
+    keyframe_range:
+      start: "ego进入U-turn准备位置"
+      end: "U-turn完成或放弃"
+    trigger_conditions:
+      - "掉头时存在交互博弈"
+    annotation_focus:
+      - 交互对象
+      - 让行/博弈策略
+      - gap判断
+
+  kturn:
+    type: proactive
+    keyframe_range:
+      start: "K-turn开始"
+      end: "K-turn完成"
+    trigger_conditions:
+      - "空间受限需要多次调整"
+    annotation_focus:
+      - 可用空间
+      - 调整次数
+      - 周围障碍物
+
+  guidance_line_following:
+    type: proactive
+    keyframe_range:
+      start: "进入有引导线的路口"
+      end: "离开引导线区域"
+    trigger_conditions:
+      - "路口有引导线标识"
+    annotation_focus:
+      - 引导线位置
+      - 遵从程度
+      - 偏离原因（如有）
+
+# ============================================================
+# 避障场景 (Obstacle Avoidance) Keyframe规则
+# ============================================================
+obstacle_avoidance_keyframes:
+  static_obstacle_in_lane:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始减速或偏移"
+    trigger_conditions:
+      - "检测到道内静态障碍物"
+    annotation_focus:
+      - 障碍物类型和位置
+      - 避让方式选择
+      - 剩余空间
+
+  static_obstacle_borrow_lane:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始跨线"
+    trigger_conditions:
+      - "需要借道绕行障碍物"
+    annotation_focus:
+      - 障碍物类型和位置
+      - 借道方向
+      - 对向/邻道车流
+
+  slow_stationary_vehicle:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始响应"
+    trigger_conditions:
+      - "前方有低速或静止车辆"
+    annotation_focus:
+      - 目标车辆状态
+      - 是否临时停车
+      - 避让/等待决策
+
+  construction_zone:
+    type: proactive
+    keyframe_range:
+      start: "检测到施工区域入口"
+      end: "离开施工区域"
+    trigger_conditions:
+      - "存在施工标识或锥桶"
+    annotation_focus:
+      - 施工范围
+      - 车道变化
+      - 限速要求
+
+  lead_cutout_reveal:
+    type: reactive
+    keyframe_definition: "min(前车开始cutout, 静止障碍物首次可见)"
+    trigger_conditions:
+      - "前车cutout"
+      - "露出前方障碍物"
+    annotation_focus:
+      - 前车cutout时机
+      - 露出的障碍物类型
+      - 可用反应时间
+      - uncertainty: high
+
+  vru_avoidance:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始减速或偏移"
+    trigger_conditions:
+      - "VRU在或接近行驶路径"
+    annotation_focus:
+      - VRU类型和状态
+      - 避让方式
+      - 安全距离
+
+  small_obstacle:
+    type: reactive
+    keyframe_definition: "障碍物首次被检测到的时刻"
+    trigger_conditions:
+      - "检测到小型障碍物"
+    annotation_focus:
+      - 障碍物类型
+      - 是否需要避让
+      - 避让方式
+
+  puddle_pothole_avoidance:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始偏移"
+    trigger_conditions:
+      - "检测到水坑或凹坑"
+    annotation_focus:
+      - 水坑/凹坑位置和大小
+      - 偏移方向
+      - 对其他车道影响
+
+  intersection_obstacle_avoidance:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始避障动作"
+    trigger_conditions:
+      - "路口内有障碍物"
+    annotation_focus:
+      - 障碍物位置
+      - 对通行路径影响
+      - 避障与通行的协调
+
+# ============================================================
+# 特殊设施场景 (Special Facilities) Keyframe规则
+# ============================================================
+special_facilities_keyframes:
+  toll_etc_lane:
+    type: proactive
+    keyframe_range:
+      start: "进入收费站前广场"
+      end: "通过ETC通道"
+    annotation_focus:
+      - 通道选择
+      - 车速控制
+      - 通行效率
+
+  toll_manual_lane:
+    type: proactive
+    keyframe_range:
+      start: "进入收费站前广场"
+      end: "通过人工通道"
+    annotation_focus:
+      - 通道选择
+      - 停车位置
+      - 起步时机
+
+  toll_plaza_lane_selection:
+    type: proactive
+    keyframe_range:
+      start: "进入前广场"
+      end: "进入目标通道"
+    annotation_focus:
+      - 可用通道
+      - 排队情况
+      - 选择策略
+
+  toll_gate_passage:
+    type: reactive
+    keyframe_definition: "0.5s before ego进入闸机通道"
+    annotation_focus:
+      - 闸杆状态
+      - 通道宽度
+      - 对正情况
+
+  roundabout_entry_exit:
+    type: reactive
+    keyframe_definition: "0.5s before ego进入/离开环岛"
+    annotation_focus:
+      - 环岛内车流
+      - 进入/驶出时机
+      - 让行判断
+
+  roundabout_lane_selection:
+    type: proactive
+    keyframe_range:
+      start: "进入环岛"
+      end: "到达目标出口"
+    annotation_focus:
+      - 目标出口
+      - 车道选择
+      - 换道需求
+
+  gate_resume_after_open:
+    type: reactive
+    keyframe_definition: "闸杆抬起时刻"
+    annotation_focus:
+      - 闸杆状态变化
+      - 起步时机
+      - 起步速度
+
+  gate_turn_cut_corner:
+    type: reactive
+    keyframe_definition: "0.5s before ego开始转弯"
+    annotation_focus:
+      - 转弯空间
+      - 内切风险
+      - 闸机设备距离
+
+# ============================================================
+# 安全场景 (Safety Critical) Keyframe规则
+# ============================================================
+safety_critical_keyframes:
+  aeb_vehicle:
+    type: reactive
+    keyframe_definition: "AEB触发时刻"
+    trigger_conditions:
+      - "与车辆碰撞风险达到AEB阈值"
+    annotation_focus:
+      - 触发对象
+      - TTC
+      - 制动强度
+      - 避撞结果
+
+  aeb_vru:
+    type: reactive
+    keyframe_definition: "AEB触发时刻"
+    trigger_conditions:
+      - "与VRU碰撞风险达到AEB阈值"
+    annotation_focus:
+      - VRU类型和状态
+      - TTC
+      - 制动强度
+      - 避撞结果
+
+  aeb_large_irregular_vehicle:
+    type: reactive
+    keyframe_definition: "AEB触发时刻"
+    trigger_conditions:
+      - "与大型/异形车辆碰撞风险达到AEB阈值"
+    annotation_focus:
+      - 车辆类型
+      - 检测难度
+      - TTC
+      - 制动强度
+
+  emergency_maneuver:
+    type: reactive
+    keyframe_definition: "紧急避险动作开始时刻"
+    trigger_conditions:
+      - "存在紧急碰撞风险"
+      - "需要紧急机动"
+    annotation_focus:
+      - 风险来源
+      - 避险策略
+      - 机动方向
+      - 避险结果
+
+# ============================================================
+# 特殊环境场景 (Special Environment) Keyframe规则
+# ============================================================
+special_environment_keyframes:
+  high_curvature_curve:
+    type: proactive
+    keyframe_range:
+      start: "检测到前方大曲率弯道"
+      end: "通过弯道"
+    annotation_focus:
+      - 弯道曲率
+      - 入弯速度
+      - 速度调整策略
+
+  narrow_road:
+    type: proactive
+    keyframe_range:
+      start: "进入窄道区域"
+      end: "离开窄道区域"
+    annotation_focus:
+      - 道路宽度
+      - 两侧障碍物
+      - 对向车辆
+
+  slope:
+    type: proactive
+    keyframe_range:
+      start: "进入坡道区域"
+      end: "离开坡道区域"
+    annotation_focus:
+      - 坡度
+      - 上坡/下坡
+      - 动力调整
+
+  tunnel:
+    type: proactive
+    keyframe_range:
+      start: "进入隧道"
+      end: "离开隧道"
+    annotation_focus:
+      - 隧道长度
+      - 光照变化
+      - 车道情况
+
+  rural_road:
+    type: proactive
+    keyframe_range:
+      start: "进入乡村道路"
+      end: "离开乡村道路"
+    annotation_focus:
+      - 路面状况
+      - 道路标识
+      - 潜在风险
+
+  adverse_weather_rain_fog:
+    type: proactive
+    keyframe_range:
+      start: "进入恶劣天气区域"
+      end: "离开恶劣天气区域"
+    annotation_focus:
+      - 天气类型
+      - 能见度
+      - 路面状况
+      - 速度调整
+
+  adverse_weather_snow:
+    type: proactive
+    keyframe_range:
+      start: "进入积雪区域"
+      end: "离开积雪区域"
+    annotation_focus:
+      - 积雪程度
+      - 附着力评估
+      - 驾驶策略
+
+  lighting_glare_low_light:
+    type: proactive
+    keyframe_range:
+      start: "进入光照异常区域"
+      end: "离开光照异常区域"
+    annotation_focus:
+      - 光照类型（炫光/暗光）
+      - 对感知影响
+      - 应对策略

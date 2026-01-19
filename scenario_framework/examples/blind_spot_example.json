@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "clip_id": "clip_20260115_160000_004",
+  "description": "盲区减速场景标注示例 - 无灯路口盲区减速",
+  
+  "scenario": {
+    "l1": "reactive_road",
+    "l2": "blind_spot_slowdown",
+    "l3": "unsignalized",
+    "full_id": "reactive_road.blind_spot_slowdown.unsignalized"
+  },
+  
+  "keyframe": {
+    "timestamp": "2026-01-15T16:00:15.000Z",
+    "frame_idx": 150,
+    "type": "proactive",
+    "range_start": "2026-01-15T16:00:10.000Z",
+    "range_end": "2026-01-15T16:00:22.000Z"
+  },
+  
+  "time_range": {
+    "start_timestamp": "2026-01-15T16:00:07.000Z",
+    "end_timestamp": "2026-01-15T16:00:25.000Z",
+    "start_frame_idx": 70,
+    "end_frame_idx": 250
+  },
+  
+  "driving_decision": {
+    "longitudinal": "road_speed_adaptation",
+    "lateral": "lane_keeping",
+    "lateral_direction": null
+  },
+  
+  "critical_components": [
+    {
+      "description": "前方有无信号灯路口，右侧有建筑物遮挡视野，形成盲区",
+      "uncertainty": "high"
+    },
+    {
+      "description": "路口无信号灯控制，可能有横向来车或行人"
+    }
+  ],
+  
+  "coc_trace": "前方路口右侧存在盲区，视野受限，可能有车辆或行人突然出现。不确定性较高。决策：减速通过，加强观察。",
+  
+  "metadata": {
+    "annotator_id": "annotator_004",
+    "annotation_time": "2026-01-15T20:00:00.000Z",
+    "annotation_duration_sec": 100,
+    "quality_flags": [],
+    "reviewer_id": null,
+    "review_time": null
+  }
+}

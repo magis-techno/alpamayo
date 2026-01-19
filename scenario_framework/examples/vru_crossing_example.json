@@ -1,0 +1,52 @@
+{
+  "version": "2.0.0",
+  "clip_id": "clip_20260115_140000_003",
+  "description": "VRU横穿场景标注示例 - 行人在斑马线横穿",
+  
+  "scenario": {
+    "l1": "reactive_agent",
+    "l2": "vru_crossing",
+    "l3": "horizontal",
+    "full_id": "reactive_agent.vru_crossing.horizontal"
+  },
+  
+  "keyframe": {
+    "timestamp": "2026-01-15T14:00:12.000Z",
+    "frame_idx": 120,
+    "type": "reactive"
+  },
+  
+  "time_range": {
+    "start_timestamp": "2026-01-15T14:00:09.000Z",
+    "end_timestamp": "2026-01-15T14:00:18.000Z",
+    "start_frame_idx": 90,
+    "end_frame_idx": 180
+  },
+  
+  "driving_decision": {
+    "longitudinal": "yield_to_agent",
+    "lateral": "lane_keeping",
+    "lateral_direction": null
+  },
+  
+  "critical_components": [
+    {
+      "description": "有行人正从斑马线从左向右穿越道路，步速正常",
+      "uncertainty": "low"
+    },
+    {
+      "description": "斑马线处行人有优先通行权"
+    }
+  ],
+  
+  "coc_trace": "有行人正从斑马线穿越道路。行人在斑马线有优先通行权，需要减速让行确保行人安全通过。决策：让行减速，保持车道。",
+  
+  "metadata": {
+    "annotator_id": "annotator_003",
+    "annotation_time": "2026-01-15T18:00:00.000Z",
+    "annotation_duration_sec": 90,
+    "quality_flags": [],
+    "reviewer_id": null,
+    "review_time": null
+  }
+}

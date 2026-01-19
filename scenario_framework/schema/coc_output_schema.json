@@ -1,0 +1,219 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "coc_annotation_output_v1.0.0",
+  "title": "CoC Annotation Output",
+  "description": "Chain of Causation标注结果输出格式",
+  "type": "object",
+  "required": ["version", "clip_id", "scenario", "keyframe", "driving_decision", "coc_trace"],
+  
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "数据格式版本",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    
+    "clip_id": {
+      "type": "string",
+      "description": "数据片段唯一标识",
+      "minLength": 1
+    },
+    
+    "scenario": {
+      "type": "object",
+      "description": "场景分类",
+      "required": ["l1", "l2"],
+      "properties": {
+        "l1": {
+          "type": "string",
+          "enum": ["reactive_agent", "reactive_road", "reactive_rule", "proactive", "safety"],
+          "description": "L1大类"
+        },
+        "l2": {
+          "type": "string",
+          "description": "L2场景"
+        },
+        "l3": {
+          "type": ["string", "null"],
+          "description": "L3变体（可选）"
+        },
+        "full_id": {
+          "type": "string",
+          "description": "完整场景ID",
+          "pattern": "^[a-z_]+\\.[a-z_]+(\\.[a-z_]+)?$"
+        }
+      }
+    },
+    
+    "keyframe": {
+      "type": "object",
+      "description": "关键帧信息",
+      "required": ["timestamp", "frame_idx", "type"],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "关键帧时间戳"
+        },
+        "frame_idx": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "关键帧索引"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["reactive", "proactive"],
+          "description": "关键帧类型"
+        },
+        "range_start": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Proactive场景范围起始"
+        },
+        "range_end": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Proactive场景范围结束"
+        }
+      },
+      "if": {
+        "properties": { "type": { "const": "proactive" } }
+      },
+      "then": {
+        "required": ["range_start", "range_end"]
+      }
+    },
+    
+    "time_range": {
+      "type": "object",
+      "description": "标注有效时间范围",
+      "properties": {
+        "start_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "start_frame_idx": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_frame_idx": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    
+    "driving_decision": {
+      "type": "object",
+      "description": "驾驶决策",
+      "properties": {
+        "longitudinal": {
+          "type": ["string", "null"],
+          "enum": [
+            "set_speed_tracking",
+            "lead_following",
+            "road_speed_adaptation",
+            "gap_matching",
+            "acceleration_for_passing",
+            "yield_to_agent",
+            "stop_for_regulation",
+            "stop_for_obstacle",
+            "resume",
+            null
+          ],
+          "description": "纵向决策"
+        },
+        "lateral": {
+          "type": ["string", "null"],
+          "enum": [
+            "lane_keeping",
+            "in_lane_nudge",
+            "out_of_lane_nudge",
+            "lane_change",
+            "merge_or_split",
+            "turn",
+            "pull_over",
+            "maneuver_abort",
+            "reverse",
+            null
+          ],
+          "description": "横向决策"
+        },
+        "lateral_direction": {
+          "type": ["string", "null"],
+          "enum": ["left", "right", "uturn", null],
+          "description": "横向决策方向"
+        }
+      }
+    },
+    
+    "critical_components": {
+      "type": "array",
+      "description": "关键因素列表（开集设计，可自由描述）",
+      "items": {
+        "type": "object",
+        "required": ["description"],
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "参考类别（可选，可自定义）"
+          },
+          "description": {
+            "type": "string",
+            "description": "自然语言描述，描述影响决策的关键因素"
+          },
+          "uncertainty": {
+            "type": "string",
+            "enum": ["low", "high"],
+            "description": "不确定性标记（盲区/遮挡场景使用high）"
+          }
+        }
+      }
+    },
+    
+    "coc_trace": {
+      "type": "string",
+      "minLength": 10,
+      "description": "CoC推理链文本"
+    },
+    
+    "metadata": {
+      "type": "object",
+      "description": "元数据",
+      "properties": {
+        "annotator_id": {
+          "type": "string",
+          "description": "标注员ID"
+        },
+        "annotation_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "标注时间"
+        },
+        "annotation_duration_sec": {
+          "type": "number",
+          "minimum": 0,
+          "description": "标注耗时（秒）"
+        },
+        "quality_flags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "质量标记"
+        },
+        "reviewer_id": {
+          "type": ["string", "null"],
+          "description": "审核员ID"
+        },
+        "review_time": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "审核时间"
+        }
+      }
+    }
+  }
+}

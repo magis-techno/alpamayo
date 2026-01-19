@@ -1,0 +1,52 @@
+{
+  "version": "2.0.0",
+  "clip_id": "clip_20260115_103000_001",
+  "description": "紧急Cutin场景标注示例 - 左侧小车无转向灯切入",
+  
+  "scenario": {
+    "l1": "reactive_agent",
+    "l2": "cutin",
+    "l3": "urgent",
+    "full_id": "reactive_agent.cutin.urgent"
+  },
+  
+  "keyframe": {
+    "timestamp": "2026-01-15T10:30:15.500Z",
+    "frame_idx": 155,
+    "type": "reactive"
+  },
+  
+  "time_range": {
+    "start_timestamp": "2026-01-15T10:30:10.500Z",
+    "end_timestamp": "2026-01-15T10:30:21.500Z",
+    "start_frame_idx": 105,
+    "end_frame_idx": 215
+  },
+  
+  "driving_decision": {
+    "longitudinal": "yield_to_agent",
+    "lateral": "lane_keeping",
+    "lateral_direction": null
+  },
+  
+  "critical_components": [
+    {
+      "description": "左侧有车辆正在切入我的车道，距离较近，未打转向灯，切入意图突然",
+      "uncertainty": "low"
+    },
+    {
+      "description": "当前在中间车道，两侧均为虚线，可通行"
+    }
+  ],
+  
+  "coc_trace": "左侧车辆正在切入我方车道，距离较近，需要及时响应。切入车辆未打转向灯，切入意图突然。决策：减速让行，保持当前车道。",
+  
+  "metadata": {
+    "annotator_id": "annotator_001",
+    "annotation_time": "2026-01-15T14:30:00.000Z",
+    "annotation_duration_sec": 120,
+    "quality_flags": [],
+    "reviewer_id": "reviewer_001",
+    "review_time": "2026-01-15T16:00:00.000Z"
+  }
+}

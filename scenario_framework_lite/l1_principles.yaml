@@ -1,0 +1,278 @@
+# L1 级原则定义
+# 挑战者方案的核心：用抽象原则 + LLM 涌现，替代细化的 L2/L3 规格
+# Version: 1.0.0
+
+metadata:
+  version: "1.0.0"
+  description: "L1 级 Keyframe 原则和 Critical Components 规则"
+  philosophy: "定义抽象原则，让 LLM 根据具体场景推断细节"
+
+# ============================================================
+# L1 场景分类
+# ============================================================
+l1_categories:
+  - id: reactive_agent
+    name_zh: 交互响应
+    name_en: Reactive Agent
+    definition: 对动态交通参与者（车辆、VRU）的响应
+    
+  - id: reactive_road
+    name_zh: 路况适应
+    name_en: Reactive Road
+    definition: 对道路条件（几何、盲区、路面）的适应性响应
+    
+  - id: reactive_rule
+    name_zh: 规则遵从
+    name_en: Reactive Rule
+    definition: 对交通规则（信号灯、标志、特殊设施）的响应
+    
+  - id: proactive
+    name_zh: 主动机动
+    name_en: Proactive
+    definition: ego 主动发起的机动（换道、避障、转弯）
+    
+  - id: safety
+    name_zh: 安全临界
+    name_en: Safety Critical
+    definition: AEB、紧急避险等安全临界场景
+
+# ============================================================
+# Keyframe 原则（核心）
+# ============================================================
+keyframe_principles:
+  
+  reactive_agent:
+    type: reactive  # 单一时间点
+    general_principle: |
+      Keyframe = 外部交通参与者的动作触发 ego 必须响应的时刻。
+      
+      关键判断标准：
+      1. 选择"外部事件发生"的时刻，而非"ego 开始响应"的时刻
+      2. 这个时刻之后，ego 如果不响应会有安全风险或违规
+      3. 这个时刻应该是客观可判断的（不依赖主观判断）
+      
+    typical_scenarios:
+      - scenario: "车辆切入 (Cutin)"
+        keyframe_hint: "他车车轮越过车道线进入 ego 车道的时刻"
+      - scenario: "VRU 横穿"
+        keyframe_hint: "VRU 进入 ego 未来轨迹横向 7m 范围的时刻"
+      - scenario: "VRU 突现（鬼探头）"
+        keyframe_hint: "VRU 首次进入 ego 视野的时刻"
+      - scenario: "他车异常行为"
+        keyframe_hint: "他车开始异常动作（倒车、急刹、cutout）的时刻"
+      - scenario: "跟车响应"
+        keyframe_hint: "前车状态变化（加减速、停车）触发 ego 需要调整的时刻"
+        
+    fallback_rule: |
+      如果无法明确判断，选择 TTC (Time to Collision) 首次低于 5s 的时刻。
+      
+  reactive_road:
+    type: proactive  # 时间范围
+    general_principle: |
+      Keyframe = 道路条件开始影响 ego 决策的时间范围。
+      
+      关键判断标准：
+      1. 起始：道路条件首次可感知/可预见的时刻
+      2. 结束：道路条件影响消失，ego 恢复常规行驶的时刻
+      3. 对于盲区场景，uncertainty 必须标记为 high
+      
+    typical_scenarios:
+      - scenario: "盲区减速"
+        keyframe_hint: "从盲区条件满足（距路口/汇入点 60m）到通过盲区"
+      - scenario: "弯道适应"
+        keyframe_hint: "从弯道入口前 50m 到弯道出口"
+      - scenario: "坡道/窄道"
+        keyframe_hint: "从检测到特殊路况到通过"
+        
+    fallback_rule: |
+      如果无法明确判断，使用 ego 速度开始变化前 3s 到速度恢复稳定后 2s。
+
+  reactive_rule:
+    type: reactive  # 单一时间点
+    general_principle: |
+      Keyframe = 交通规则触发 ego 必须响应的时刻。
+      
+      关键判断标准：
+      1. 对于信号灯：灯态变化的时刻（红灯、绿灯）
+      2. 对于标志/设施：ego 进入控制区域的时刻
+      3. 选择规则生效的时刻，而非 ego 响应的时刻
+      
+    typical_scenarios:
+      - scenario: "红灯刹停"
+        keyframe_hint: "信号灯变红（或 ego 接近红灯）需要刹停的时刻"
+      - scenario: "绿灯起步"
+        keyframe_hint: "信号灯变绿的时刻"
+      - scenario: "特殊设施（收费站、环岛）"
+        keyframe_hint: "ego 进入设施控制区域的时刻"
+        
+    fallback_rule: |
+      如果无法明确判断，选择 ego 开始减速/加速前 0.5s。
+
+  proactive:
+    type: proactive  # 时间范围
+    general_principle: |
+      Keyframe = ego 主动机动的完整执行范围。
+      
+      关键判断标准：
+      1. 起始：机动意图产生的时刻（routing command、效率判断）
+      2. 结束：机动完成，ego 恢复稳定行驶的时刻
+      3. 整个范围都是 CoC 的标注对象
+      
+    typical_scenarios:
+      - scenario: "换道"
+        keyframe_hint: "从换道意图产生到目标车道居中稳定"
+      - scenario: "避障"
+        keyframe_hint: "从检测到障碍物到绕过并恢复"
+      - scenario: "转弯"
+        keyframe_hint: "从进入路口到离开路口"
+      - scenario: "汇入汇出"
+        keyframe_hint: "从进入匝道到汇入/汇出完成"
+        
+    fallback_rule: |
+      如果无法明确判断，使用 ego 横向位移 > 0.3m 的时间范围，前后各扩展 2s。
+
+  safety:
+    type: reactive  # 单一时间点
+    general_principle: |
+      Keyframe = 安全系统触发的时刻。
+      
+      关键判断标准：
+      1. AEB：系统激活的时刻
+      2. 紧急避险：ego 开始紧急机动的时刻
+      3. 这类场景优先级最高，Keyframe 必须精确
+      
+    typical_scenarios:
+      - scenario: "AEB 触发"
+        keyframe_hint: "AEB 系统激活的时刻"
+      - scenario: "紧急避险"
+        keyframe_hint: "ego 开始紧急转向/制动的时刻"
+        
+    fallback_rule: |
+      如果无法从系统日志确定，选择 TTC 最小的时刻。
+
+# ============================================================
+# Start/End Time 原则
+# ============================================================
+time_range_principles:
+  
+  reactive_scenarios:
+    principle: |
+      对于 Reactive 场景（单一 Keyframe）：
+      - Start: keyframe 前 2-5s（确保包含足够的历史观测）
+      - End: keyframe 后 3-5s（确保包含响应完成）
+      
+    guidelines:
+      - "紧急场景（TTC < 3s）：keyframe 前 2s"
+      - "非紧急场景：keyframe 前 5s 或触发条件首次满足"
+      - "结束时刻：状态恢复稳定或 keyframe 后 3s"
+      
+  proactive_scenarios:
+    principle: |
+      对于 Proactive 场景（时间范围）：
+      - Start: 范围起始前 2-3s（包含准备阶段）
+      - End: 范围结束后 1-2s（确认稳定）
+      
+    guidelines:
+      - "换道：意图产生前 2s，完成后 1s"
+      - "转弯：进入路口前 3s，离开路口后 2s"
+
+# ============================================================
+# Critical Components 规则
+# ============================================================
+critical_components_principles:
+  
+  general_principle: |
+    Critical Components 描述影响 ego 决策的关键因素。
+    
+    核心要求：
+    1. 只描述 Keyframe 之前（或当时）可观测的信息
+    2. 不使用"后见之明"（事后才知道的信息）
+    3. 对于不确定的因素，标记 uncertainty: high
+    
+  by_l1_category:
+    
+    reactive_agent:
+      focus_areas:
+        - "交互目标的类型（车辆/VRU/大车）"
+        - "交互目标的运动状态（速度、方向、意图）"
+        - "与 ego 的相对位置和 TTC"
+        - "是否有预警信号（转向灯、减速）"
+      uncertainty_triggers:
+        - "目标被遮挡"
+        - "目标意图不明"
+        - "目标行为异常"
+        
+    reactive_road:
+      focus_areas:
+        - "道路几何特征（曲率、坡度、宽度）"
+        - "盲区位置和范围"
+        - "路面条件（湿滑、破损）"
+        - "可能存在的隐藏风险"
+      uncertainty_triggers:
+        - "盲区存在"
+        - "视野受限"
+        - "天气影响能见度"
+        
+    reactive_rule:
+      focus_areas:
+        - "信号灯状态（当前、变化）"
+        - "交通标志/标线"
+        - "特殊设施规则"
+        - "排队/等待情况"
+      uncertainty_triggers:
+        - "信号灯不清晰"
+        - "规则冲突"
+        
+    proactive:
+      focus_areas:
+        - "机动原因（导航/效率/避障）"
+        - "目标位置（车道、方向）"
+        - "Gap 情况（前车距离、后车距离）"
+        - "周围车流情况"
+      uncertainty_triggers:
+        - "Gap 不稳定"
+        - "周围车辆意图不明"
+        
+    safety:
+      focus_areas:
+        - "触发原因（目标类型、位置）"
+        - "TTC 和碰撞风险"
+        - "可用的避险空间"
+        - "避险结果"
+      uncertainty_triggers:
+        - "目标突然出现"
+        - "多个风险源"
+
+# ============================================================
+# CoC Trace 生成原则
+# ============================================================
+coc_trace_principles:
+  
+  structure: |
+    CoC Trace 应包含以下部分：
+    1. 场景描述：关键目标/环境的状态
+    2. 因果分析：为什么需要做这个决策
+    3. 决策陈述：明确纵向 + 横向决策
+    
+  guidelines:
+    - "使用客观描述，避免主观判断"
+    - "包含关键数值（TTC、距离、速度）"
+    - "因果关系要明确（因为 X，所以 Y）"
+    - "决策与轨迹行为一致"
+    
+  example_templates:
+    reactive_agent: |
+      {target_description}，{motion_state}。
+      TTC 约 {ttc}s，{risk_assessment}。
+      决策：{longitudinal_decision}，{lateral_decision}。
+      
+    reactive_road: |
+      前方 {distance}m 处 {road_condition}。
+      {visibility_info}，可能存在 {potential_risk}。
+      不确定性：{uncertainty}。
+      决策：{decision}。
+      
+    proactive: |
+      {reason}，需要 {maneuver_type}。
+      目标车道 {target_lane_info}，gap 情况：{gap_info}。
+      决策：{decision}。

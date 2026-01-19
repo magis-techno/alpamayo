@@ -1,0 +1,219 @@
+# Driving Decision 闭集定义
+# 这是必须保留的约束，确保训练监督信号明确
+# Version: 1.0.0
+
+metadata:
+  version: "1.0.0"
+  description: "Driving Decision 闭集定义，与完整方案保持一致"
+  note: "这是不可省略的核心约束"
+
+# ============================================================
+# 纵向决策 (Longitudinal) - 9 种
+# ============================================================
+longitudinal_decisions:
+  
+  - id: set_speed_tracking
+    name_zh: 速度保持
+    name_en: Set Speed Tracking
+    definition: 无约束下保持或达到目标速度
+    typical_conditions:
+      - 无前车或前车距离远
+      - 无交通管制
+    excludes:
+      - 跟车
+      - 让行
+      - 刹停
+      
+  - id: lead_following
+    name_zh: 跟车
+    name_en: Lead Following
+    definition: 对同向前车保持安全时距
+    typical_conditions:
+      - 存在同向前车
+      - 车距在跟车范围内
+    excludes:
+      - 几何减速
+      - Gap 匹配
+      
+  - id: road_speed_adaptation
+    name_zh: 道路减速
+    name_en: Road Speed Adaptation
+    definition: 因道路几何特征减速
+    typical_conditions:
+      - 弯道、坡道、窄道
+      - 盲区
+    excludes:
+      - 因前车
+      - 因规则
+      
+  - id: gap_matching
+    name_zh: Gap 匹配
+    name_en: Gap Matching
+    definition: 为横向机动（换道、汇入）调整速度
+    typical_conditions:
+      - 准备换道/汇入
+      - 调整速度以匹配目标 gap
+    excludes:
+      - 普通跟车
+      
+  - id: acceleration_for_passing
+    name_zh: 超车加速
+    name_en: Acceleration for Passing
+    definition: 配合横向机动的加速
+    typical_conditions:
+      - 超车换道
+      - 需要加速创造 gap
+    excludes:
+      - 普通加速
+      
+  - id: yield_to_agent
+    name_zh: 让行
+    name_en: Yield to Agent
+    definition: 对有路权或需要避让的参与者让行
+    typical_conditions:
+      - Cutin
+      - VRU 横穿
+      - 无保护转弯
+    excludes:
+      - 跟车
+      - 规则刹停
+      
+  - id: stop_for_regulation
+    name_zh: 规则刹停
+    name_en: Stop for Regulation
+    definition: 对规则性约束刹停
+    typical_conditions:
+      - 红灯
+      - 停止标志
+      - 闸机
+    excludes:
+      - 障碍刹停
+      
+  - id: stop_for_obstacle
+    name_zh: 障碍刹停
+    name_en: Stop for Obstacle
+    definition: 对前方障碍物刹停
+    typical_conditions:
+      - 静态障碍物
+      - 无法绕行
+    excludes:
+      - 规则刹停
+      
+  - id: resume
+    name_zh: 起步
+    name_en: Resume
+    definition: 从静止状态起步
+    typical_conditions:
+      - 绿灯起步
+      - 闸机抬杆
+      - 障碍消除
+    excludes:
+      - 跟车加速
+
+# ============================================================
+# 横向决策 (Lateral) - 9 种
+# ============================================================
+lateral_decisions:
+  
+  - id: lane_keeping
+    name_zh: 居中保持
+    name_en: Lane Keeping
+    definition: 车道内居中行驶
+    direction_required: false
+    
+  - id: in_lane_nudge
+    name_zh: 道内偏移
+    name_en: In-lane Nudge
+    definition: 不跨线的车道内偏移
+    direction_required: true  # left / right
+    typical_conditions:
+      - 避让道内小障碍
+      - 给邻道车辆留空间
+      
+  - id: out_of_lane_nudge
+    name_zh: 借道偏移
+    name_en: Out-of-lane Nudge
+    definition: 短暂跨线后回原车道
+    direction_required: true  # left / right
+    typical_conditions:
+      - 借道避障
+      - 短暂跨线后回中
+      
+  - id: lane_change
+    name_zh: 换道
+    name_en: Lane Change
+    definition: 完整的相邻车道转移
+    direction_required: true  # left / right
+    typical_conditions:
+      - 导航换道
+      - 效率换道
+      - 超车换道
+      
+  - id: merge_or_split
+    name_zh: 汇入汇出
+    name_en: Merge or Split
+    definition: 匝道汇入或分离
+    direction_required: false
+    typical_conditions:
+      - 从匝道汇入主路
+      - 从主路驶入匝道
+      
+  - id: turn
+    name_zh: 转弯
+    name_en: Turn
+    definition: 路口/环岛/U-turn 转向
+    direction_required: true  # left / right / uturn
+    typical_conditions:
+      - 路口转弯
+      - 环岛通行
+      - 掉头
+      
+  - id: pull_over
+    name_zh: 靠边
+    name_en: Pull Over
+    definition: 向路边靠近
+    direction_required: false
+    typical_conditions:
+      - 靠边停车
+      - 让行紧急车辆
+      
+  - id: maneuver_abort
+    name_zh: 机动中止
+    name_en: Maneuver Abort
+    definition: 取消进行中的横向机动
+    direction_required: false
+    typical_conditions:
+      - 换道中止
+      - 避障中止
+      
+  - id: reverse
+    name_zh: 倒车
+    name_en: Reverse
+    definition: 向后行驶
+    direction_required: false
+    typical_conditions:
+      - 侧方停车
+      - K-turn
+
+# ============================================================
+# 决策选择原则
+# ============================================================
+selection_principles:
+  
+  longitudinal:
+    priority_order:
+      - "安全优先：stop_for_obstacle > yield_to_agent > 其他"
+      - "规则次之：stop_for_regulation 在规则场景下优先"
+      - "效率最后：set_speed_tracking 在无约束时使用"
+    mutual_exclusion:
+      - "yield_to_agent 和 lead_following 互斥"
+      - "stop_for_regulation 和 stop_for_obstacle 互斥"
+      
+  lateral:
+    priority_order:
+      - "安全优先：maneuver_abort 在危险时优先"
+      - "机动执行：按实际机动类型选择"
+      - "默认：lane_keeping"
+    mutual_exclusion:
+      - "lane_change 和 in_lane_nudge 互斥"
+      - "turn 和 lane_change 互斥"

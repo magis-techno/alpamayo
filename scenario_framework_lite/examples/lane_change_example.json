@@ -1,0 +1,47 @@
+{
+  "version": "lite-1.0.0",
+  "clip_id": "clip_20260115_lanechange_001",
+  
+  "l1_scenario": "proactive",
+  "scenario_description": "导航换道，准备驶离匝道",
+  
+  "keyframe": {
+    "timestamp": "2026-01-15T09:15:30.000Z",
+    "frame_idx": 300,
+    "type": "proactive",
+    "range_start": "2026-01-15T09:15:25.000Z",
+    "range_end": "2026-01-15T09:15:38.000Z",
+    "keyframe_rationale": "从换道意图产生到目标车道居中稳定"
+  },
+  
+  "time_range": {
+    "start_timestamp": "2026-01-15T09:15:22.000Z",
+    "end_timestamp": "2026-01-15T09:15:40.000Z"
+  },
+  
+  "driving_decision": {
+    "longitudinal": "gap_matching",
+    "lateral": "lane_change",
+    "lateral_direction": "right"
+  },
+  
+  "critical_components": {
+    "primary_factors": [
+      "导航指示需要驶离匝道",
+      "需换至右侧车道",
+      "目标车道有合适的间隙"
+    ],
+    "uncertainty": "low",
+    "uncertainty_reason": null
+  },
+  
+  "coc_trace": "导航指示前方需要驶离匝道，需要换至右侧车道。目标车道有合适的间隙可以切入。调整速度匹配目标间隙后执行换道。决策：调整速度，向右换道。",
+  
+  "metadata": {
+    "generation_method": "hybrid",
+    "llm_model": "gpt-4-turbo",
+    "annotator_id": "annotator_003",
+    "confidence": 0.95,
+    "review_status": "approved"
+  }
+}

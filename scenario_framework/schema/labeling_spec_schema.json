@@ -1,0 +1,192 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "labeling_spec_schema_v1.0.0",
+  "title": "Labeling Specification Schema",
+  "description": "标注规格定义格式",
+  "type": "object",
+  "required": ["scenario_id", "name", "definition", "keyframe", "time_range", "driving_decision", "critical_components"],
+
+  "properties": {
+    "scenario_id": {
+      "type": "string",
+      "description": "场景完整ID",
+      "pattern": "^[a-z_]+\\.[a-z_]+(\\.[a-z_]+)?$"
+    },
+
+    "name": {
+      "type": "object",
+      "properties": {
+        "zh": { "type": "string" },
+        "en": { "type": "string" }
+      },
+      "required": ["zh", "en"]
+    },
+
+    "definition": {
+      "type": "string",
+      "description": "场景定义"
+    },
+
+    "mining_conditions": {
+      "type": "array",
+      "description": "数据挖掘条件",
+      "items": {
+        "type": "object",
+        "properties": {
+          "condition": { "type": "string" },
+          "field": { "type": "string" },
+          "operator": { "type": "string", "enum": [">", "<", ">=", "<=", "==", "!=", "in", "not_in", "contains"] },
+          "value": {},
+          "unit": { "type": "string" }
+        },
+        "required": ["condition"]
+      }
+    },
+
+    "keyframe": {
+      "type": "object",
+      "description": "关键帧定义",
+      "required": ["type", "definition"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["reactive", "proactive"],
+          "description": "关键帧类型"
+        },
+        "definition": {
+          "type": "string",
+          "description": "关键帧的文字定义"
+        },
+        "rule": {
+          "type": "string",
+          "description": "关键帧的具体规则"
+        }
+      }
+    },
+
+    "time_range": {
+      "type": "object",
+      "description": "起止时刻定义",
+      "properties": {
+        "start": {
+          "type": "object",
+          "properties": {
+            "definition": { "type": "string" },
+            "rule": { "type": "string" },
+            "fallback": { "type": "string" }
+          },
+          "required": ["definition"]
+        },
+        "end": {
+          "type": "object",
+          "properties": {
+            "definition": { "type": "string" },
+            "rule": { "type": "string" },
+            "fallback": { "type": "string" }
+          },
+          "required": ["definition"]
+        },
+        "packaging": {
+          "type": "object",
+          "description": "打包范围",
+          "properties": {
+            "before_start_sec": { "type": "number" },
+            "after_end_sec": { "type": "number" }
+          }
+        }
+      }
+    },
+
+    "driving_decision": {
+      "type": "object",
+      "description": "典型驾驶决策",
+      "properties": {
+        "longitudinal": {
+          "type": "object",
+          "properties": {
+            "typical": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "possible": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "lateral": {
+          "type": "object",
+          "properties": {
+            "typical": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "possible": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "critical_components": {
+      "type": "object",
+      "description": "关键因素",
+      "properties": {
+        "required": {
+          "type": "array",
+          "description": "必填因素",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "field": { "type": "string" },
+              "type": { "type": "string" },
+              "description": { "type": "string" }
+            },
+            "required": ["name"]
+          }
+        },
+        "optional": {
+          "type": "array",
+          "description": "选填因素",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "field": { "type": "string" },
+              "type": { "type": "string" },
+              "description": { "type": "string" }
+            },
+            "required": ["name"]
+          }
+        },
+        "require_uncertainty": {
+          "type": "boolean",
+          "description": "是否必须标记不确定性"
+        }
+      }
+    },
+
+    "coc_template": {
+      "type": "string",
+      "description": "CoC推理链模板"
+    },
+
+    "l3_variants": {
+      "type": "array",
+      "description": "L3变体",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name_zh": { "type": "string" },
+          "condition": { "type": "string" },
+          "spec_diff": { "type": ["string", "null"] }
+        },
+        "required": ["id", "condition"]
+      }
+    }
+  }
+}

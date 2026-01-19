@@ -1,0 +1,950 @@
+# 关键因素模板 (Critical Components Templates)
+# 定义每个场景类型应关注的因果因素
+# Version: 1.0.0
+
+metadata:
+  version: "1.0.0"
+  description: "Critical Components模板，用于CoC标注中描述影响决策的关键因素"
+  reference: "Alpamayo-R1 Paper Table 2"
+  note: "Critical Components是开放集，本模板定义每个场景应重点关注的要素类别"
+
+# ============================================================
+# 通用因素类别定义 (参考论文Table 2)
+# ============================================================
+component_categories:
+  critical_objects:
+    name_zh: 关键目标
+    name_en: Critical Objects
+    attributes:
+      - type: "车辆/行人/骑行者/VRU"
+      - relative_pose: "与ego的相对位置（in-path, left, right, oncoming, crosswalk）"
+      - motion: "运动状态（stopped, slowing, crossing, cut-in risk）"
+    uncertainty_levels: ["low", "high"]
+    
+  traffic_lights:
+    name_zh: 交通信号灯
+    name_en: Traffic Lights
+    attributes:
+      - current_state: "当前状态（R/Y/G）"
+      - arrow_state: "箭头灯状态"
+      - visibility: "可见性/遮挡情况"
+      - wait_line: "是否有等待线"
+    
+  yield_stop_control:
+    name_zh: 让行/停止控制
+    name_en: Yield/Stop Control
+    attributes:
+      - sign_presence: "标志存在"
+      - control_type: "控制类型（all-way, two-way）"
+      - line_location: "停止/让行线位置"
+    
+  road_events:
+    name_zh: 道路事件
+    name_en: Road Events
+    attributes:
+      - curvature_grade: "曲率/坡度"
+      - speed_bump: "减速带"
+      - narrowing: "道路变窄"
+      - roundabout: "环岛"
+      - ramp_junction: "匝道/交叉口"
+    
+  lane_lanelines:
+    name_zh: 车道/车道线
+    name_en: Lane/Lanelines
+    attributes:
+      - lane_count: "车道数量"
+      - laneline_type: "车道线类型（dashed/solid）"
+      - shoulder_bike_lane: "路肩/自行车道"
+      - usable_width: "可用宽度"
+    
+  routing_intent:
+    name_zh: 导航意图
+    name_en: Routing Intent
+    attributes:
+      - target_lane_turn: "目标车道/转向（L/R/through）"
+      - near_term_split_merge: "近期分合流"
+      - required_lane: "机动所需车道"
+    
+  odd_constraints:
+    name_zh: ODD约束
+    name_en: ODD Constraints
+    attributes:
+      - weather_visibility: "天气/能见度"
+      - construction: "施工"
+      - emergency_vehicles: "紧急车辆"
+      - special_rules: "特殊规则（校车/铁路）"
+
+# ============================================================
+# 巡航场景 (Cruising) Critical Components模板
+# ============================================================
+cruising_components:
+  set_speed_tracking:
+    required_components:
+      - routing_intent:
+          focus: ["target speed", "speed limit"]
+      - road_events:
+          focus: ["road type", "geometry"]
+    optional_components:
+      - odd_constraints:
+          focus: ["weather", "visibility"]
+    template: |
+      道路类型为{road_type}，限速{speed_limit}kph。
+      前方道路{road_condition}，无明显约束。
+      决策：保持/加速至目标速度{target_speed}kph。
+
+  lead_following_highway:
+    required_components:
+      - critical_objects:
+          focus: ["lead vehicle type", "lead speed", "gap distance"]
+      - lane_lanelines:
+          focus: ["current lane", "lane width"]
+    optional_components:
+      - road_events:
+          focus: ["curvature", "grade"]
+    template: |
+      前方{distance}m处有{vehicle_type}，速度{lead_speed}kph。
+      当前跟车时距{time_gap}s，速度差{speed_diff}kph。
+      决策：保持跟车，维持安全时距。
+
+  lead_following_congestion:
+    required_components:
+      - critical_objects:
+          focus: ["lead vehicle", "congestion level", "stop-go pattern"]
+      - lane_lanelines:
+          focus: ["lane position", "adjacent lanes"]
+    template: |
+      拥堵场景，前车距离{distance}m，状态为{lead_state}。
+      周围车辆密度{density}，走停频率{frequency}。
+      决策：跟随前车{action}。
+
+  resume_at_green:
+    required_components:
+      - traffic_lights:
+          focus: ["signal state change", "green duration"]
+      - critical_objects:
+          focus: ["lead vehicle if exists", "pedestrians in crosswalk"]
+    template: |
+      信号灯由{prev_state}变为绿灯。
+      {lead_situation}。
+      {crosswalk_situation}。
+      决策：起步通行。
+
+  stop_for_red:
+    required_components:
+      - traffic_lights:
+          focus: ["current state", "time to change"]
+      - yield_stop_control:
+          focus: ["stop line position"]
+      - critical_objects:
+          focus: ["lead vehicle queue"]
+    template: |
+      前方信号灯为{signal_state}，距停止线{distance}m。
+      前方{queue_situation}。
+      决策：减速刹停。
+
+  enter_wait_area:
+    required_components:
+      - traffic_lights:
+          focus: ["wait area signal", "main signal"]
+      - critical_objects:
+          focus: ["vehicles in wait area"]
+    template: |
+      待行区信号灯{wait_signal}，主信号灯{main_signal}。
+      待行区内{wait_area_situation}。
+      决策：驶入待行区。
+
+  exit_wait_area:
+    required_components:
+      - traffic_lights:
+          focus: ["main signal state"]
+      - critical_objects:
+          focus: ["oncoming traffic", "crossing traffic"]
+    template: |
+      主信号灯变为{signal_state}。
+      对向{oncoming_situation}，横向{crossing_situation}。
+      决策：从待行区起步通行。
+
+  road_adaptation_curve:
+    required_components:
+      - road_events:
+          focus: ["curvature", "curve direction", "recommended speed"]
+      - lane_lanelines:
+          focus: ["lane width", "road surface"]
+    template: |
+      前方{distance}m处有{curve_type}弯道，曲率{curvature}。
+      建议通过速度{recommended_speed}kph，当前速度{current_speed}kph。
+      决策：减速至{target_speed}kph通过弯道。
+
+# ============================================================
+# 交互场景 (Interaction) Critical Components模板
+# ============================================================
+interaction_components:
+  cutin_urgent:
+    required_components:
+      - critical_objects:
+          focus: ["cutin vehicle type", "cutin speed", "cutin angle", "TTC"]
+          uncertainty: "may need high if blinker absent"
+      - lane_lanelines:
+          focus: ["lane boundary", "gap available"]
+    template: |
+      {direction}侧{vehicle_type}正在切入，TTC={ttc}s。
+      切入车辆速度{cutin_speed}kph，与自车速度差{speed_diff}kph。
+      {blinker_info}。
+      决策：{longitudinal_decision}，{lateral_decision}。
+
+  cutin_slow:
+    required_components:
+      - critical_objects:
+          focus: ["cutin vehicle", "cutin intention", "available time"]
+      - lane_lanelines:
+          focus: ["gap situation"]
+    template: |
+      {direction}侧车辆{intention}，切入过程{duration}。
+      有充足反应时间（TTC={ttc}s）。
+      决策：减速让行，保持车道。
+
+  cutin_large_vehicle:
+    required_components:
+      - critical_objects:
+          focus: ["vehicle type (truck/bus)", "size", "occlusion caused"]
+      - lane_lanelines:
+          focus: ["lane width", "clearance"]
+    template: |
+      {vehicle_type}正在切入，车身长度约{length}m。
+      切入后视野遮挡{occlusion_level}。
+      决策：减速让行，注意后续盲区。
+
+  cutin_from_stationary:
+    required_components:
+      - critical_objects:
+          focus: ["vehicle original position", "departure intention", "target lane"]
+          uncertainty: "high - intention uncertain"
+    template: |
+      {position}处车辆从静止开始移动，{intention_assessment}。
+      目标方向{target_direction}。
+      决策：{action}。
+
+  vru_crossing:
+    required_components:
+      - critical_objects:
+          focus: ["VRU type", "crossing direction", "crossing speed", "crossing location"]
+      - lane_lanelines:
+          focus: ["crosswalk presence"]
+    template: |
+      {vru_type}正在{crossing_location}处{crossing_direction}穿越道路。
+      VRU速度约{vru_speed}m/s，预计{time_to_cross}s后通过自车路径。
+      决策：减速让行，确保VRU安全通过。
+
+  vru_diagonal_crossing:
+    required_components:
+      - critical_objects:
+          focus: ["VRU type", "trajectory", "predicted crossing point"]
+    template: |
+      {vru_type}斜向穿越，运动方向{direction}。
+      预计交叉点在{crossing_point}，交叉时间{time_to_cross}s。
+      决策：{action}。
+
+  vru_hidden_emergence:
+    required_components:
+      - critical_objects:
+          focus: ["VRU type", "emergence location", "occlusion source"]
+          uncertainty: "high"
+      - odd_constraints:
+          focus: ["visibility limitation"]
+    template: |
+      {vru_type}从{occlusion_source}后方出现。
+      出现位置距自车{distance}m，可用反应时间{reaction_time}s。
+      不确定性：高（之前被遮挡）。
+      决策：紧急减速/避让。
+
+  vru_crosswalk:
+    required_components:
+      - critical_objects:
+          focus: ["VRU status", "crosswalk position"]
+      - traffic_lights:
+          focus: ["pedestrian signal if exists"]
+      - yield_stop_control:
+          focus: ["crosswalk marking"]
+    template: |
+      斑马线处有{vru_type}，状态{vru_status}。
+      {signal_info}。
+      决策：{action}。
+
+  blind_spot_merge:
+    required_components:
+      - critical_objects:
+          focus: ["potential vehicles in blind spot"]
+          uncertainty: "high"
+      - lane_lanelines:
+          focus: ["merge zone", "acceleration lane"]
+      - routing_intent:
+          focus: ["merge target"]
+    template: |
+      准备汇入主路，侧后方{blind_spot_assessment}。
+      主路车流{mainline_traffic}，目标gap{gap_assessment}。
+      不确定性：高（盲区）。
+      决策：{merge_strategy}。
+
+  blind_spot_dynamic_occlusion:
+    required_components:
+      - critical_objects:
+          focus: ["occlusion source", "occluded area", "potential targets"]
+          uncertainty: "high"
+    template: |
+      {occlusion_source}造成视野遮挡，被遮挡区域{occluded_area}。
+      可能存在{potential_targets}。
+      不确定性：高。
+      决策：减速，增加对被遮挡区域的关注。
+
+  blind_spot_unsignalized:
+    required_components:
+      - critical_objects:
+          focus: ["potential cross traffic"]
+          uncertainty: "high"
+      - yield_stop_control:
+          focus: ["intersection control type"]
+      - road_events:
+          focus: ["intersection geometry"]
+    template: |
+      无信号路口，{visibility_assessment}。
+      {direction}方向可能有来车。
+      不确定性：高。
+      决策：减速通过，谨慎观察各方向。
+
+  intersection_unprotected_left:
+    required_components:
+      - critical_objects:
+          focus: ["oncoming traffic", "gap availability"]
+      - traffic_lights:
+          focus: ["signal phase", "time remaining"]
+      - routing_intent:
+          focus: ["left turn target"]
+    template: |
+      无保护左转，对向车流{oncoming_assessment}。
+      当前可用gap{gap_assessment}，信号剩余{time_remaining}s。
+      决策：{turn_decision}。
+
+  intersection_right_vs_straight:
+    required_components:
+      - critical_objects:
+          focus: ["straight-through vehicles", "distance and speed"]
+      - routing_intent:
+          focus: ["right turn path"]
+    template: |
+      右转时{straight_traffic_assessment}。
+      直行车辆距离{distance}m，速度{speed}kph。
+      决策：{yield_or_proceed}。
+
+  intersection_same_direction_turn:
+    required_components:
+      - critical_objects:
+          focus: ["adjacent turning vehicles", "turning paths"]
+    template: |
+      相邻车道{adjacent_vehicle}同向转弯。
+      各车转弯路径{path_assessment}，潜在冲突点{conflict_point}。
+      决策：{coordination_strategy}。
+
+  other_vehicle_reversing:
+    required_components:
+      - critical_objects:
+          focus: ["reversing vehicle", "reverse path", "reverse speed"]
+          uncertainty: "may be high if intention unclear"
+    template: |
+      {position}处车辆正在倒车，倒车方向{reverse_direction}。
+      倒车路径{path_assessment}。
+      决策：{action}。
+
+  oncoming_traffic:
+    required_components:
+      - critical_objects:
+          focus: ["oncoming vehicle type", "speed", "lane position"]
+      - lane_lanelines:
+          focus: ["road width", "available clearance"]
+    template: |
+      对向有{vehicle_type}驶来，速度{speed}kph。
+      道路宽度{road_width}m，可用会车空间{clearance}m。
+      决策：{passing_strategy}。
+
+  narrow_road_passing:
+    required_components:
+      - critical_objects:
+          focus: ["other vehicles", "pedestrians"]
+      - lane_lanelines:
+          focus: ["road width", "obstacles on sides"]
+    template: |
+      窄道场景，道路宽度{width}m，两侧{side_situation}。
+      {other_traffic}。
+      决策：{passing_strategy}。
+
+# ============================================================
+# 换道场景 (Lane Change) Critical Components模板
+# ============================================================
+lane_change_components:
+  nav_lc_urban:
+    required_components:
+      - routing_intent:
+          focus: ["target lane", "distance to turn/exit", "urgency"]
+      - critical_objects:
+          focus: ["target lane traffic", "gap vehicles"]
+      - lane_lanelines:
+          focus: ["lane marking type", "lane change legality"]
+    phases:
+      prepare:
+        template: |
+          导航指示{distance}m后需要{action}，需换至{target_lane}车道。
+          目标车道车流{traffic_assessment}，正在寻找合适gap。
+      execute:
+        template: |
+          目标车道gap：前车距离{front_gap}m，后车距离{rear_gap}m。
+          开始执行换道，{direction}向移动。
+      complete:
+        template: |
+          已进入目标车道，正在回中稳定。
+          与前后车距离安全。
+
+  nav_lc_highway:
+    required_components:
+      - routing_intent:
+          focus: ["exit/merge point", "distance remaining"]
+      - critical_objects:
+          focus: ["highway traffic", "gap availability"]
+      - lane_lanelines:
+          focus: ["lane count", "exit lane"]
+    template: |
+      高速场景，距出口/分流点{distance}km。
+      目标车道{traffic_assessment}，gap{gap_assessment}。
+      决策：{lc_decision}。
+
+  merge_entry:
+    required_components:
+      - critical_objects:
+          focus: ["mainline traffic", "merge gap", "rear approaching vehicles"]
+          uncertainty: "may be high for blind spot"
+      - lane_lanelines:
+          focus: ["acceleration lane length remaining"]
+      - road_events:
+          focus: ["merge zone geometry"]
+    template: |
+      匝道汇入，加速车道剩余{remaining}m。
+      主路车流{mainline_traffic}，目标gap{gap_assessment}。
+      后方来车{rear_vehicle_assessment}。
+      决策：{merge_decision}。
+
+  efficiency_lc:
+    required_components:
+      - critical_objects:
+          focus: ["current lane slow vehicle", "target lane traffic"]
+      - lane_lanelines:
+          focus: ["adjacent lane availability"]
+    template: |
+      当前车道前方{current_lane_issue}，限制速度{limited_speed}kph。
+      {target_lane}车道{target_assessment}，预期速度提升{improvement}kph。
+      决策：效率换道至{target_lane}车道。
+
+  overtake_lc:
+    required_components:
+      - critical_objects:
+          focus: ["vehicle to overtake", "overtaking lane traffic"]
+      - lane_lanelines:
+          focus: ["overtaking lane availability", "legal to overtake"]
+    template: |
+      前车{vehicle_type}速度{speed}kph，低于期望速度。
+      超车道{overtaking_lane_assessment}。
+      决策：换道超车。
+
+  escape_lc:
+    required_components:
+      - critical_objects:
+          focus: ["blocking reason", "target lane availability"]
+      - lane_lanelines:
+          focus: ["escape route"]
+    template: |
+      当前车道{blocking_reason}被阻塞。
+      {target_lane}可用于脱困，{target_lane_assessment}。
+      决策：脱困换道。
+
+  lc_intent_unstable:
+    required_components:
+      - critical_objects:
+          focus: ["target lane gap changes", "surrounding traffic dynamics"]
+      - routing_intent:
+          focus: ["lane change necessity"]
+    template: |
+      换道意图产生，但目标车道gap{gap_stability}。
+      gap变化原因：{reason}。
+      当前状态：{current_decision}。
+
+  lc_abort:
+    required_components:
+      - critical_objects:
+          focus: ["abort trigger", "current position"]
+      - lane_lanelines:
+          focus: ["return path"]
+    template: |
+      换道执行中，发现{abort_reason}。
+      当前横向偏移{offset}m，需要中止回中。
+      决策：中止换道，返回原车道。
+
+# ============================================================
+# 路口场景 (Intersection) Critical Components模板
+# ============================================================
+intersection_components:
+  left_turn_normal:
+    required_components:
+      - traffic_lights:
+          focus: ["left turn signal", "protected/unprotected"]
+      - critical_objects:
+          focus: ["oncoming traffic", "pedestrians"]
+      - routing_intent:
+          focus: ["target lane after turn"]
+    template: |
+      路口左转，{signal_status}。
+      对向{oncoming_assessment}，行人{pedestrian_assessment}。
+      目标进入{target_lane}。
+      决策：执行左转。
+
+  left_turn_cut_corner:
+    required_components:
+      - road_events:
+          focus: ["intersection geometry", "turn radius"]
+      - lane_lanelines:
+          focus: ["turn path", "opposing lane encroachment"]
+    template: |
+      左转路径偏内，转弯半径{radius}m。
+      内切程度{cut_level}，{impact_assessment}。
+      决策：{correction_or_proceed}。
+
+  left_turn_wide_arc:
+    required_components:
+      - road_events:
+          focus: ["intersection size", "turn path"]
+      - critical_objects:
+          focus: ["adjacent lane vehicles"]
+    template: |
+      左转路径偏外，{wide_arc_assessment}。
+      可能影响{affected_lanes}。
+      决策：{correction_or_proceed}。
+
+  right_turn_normal:
+    required_components:
+      - traffic_lights:
+          focus: ["right turn permission"]
+      - critical_objects:
+          focus: ["pedestrians", "cyclists", "right-side traffic"]
+      - yield_stop_control:
+          focus: ["right turn yield requirements"]
+    template: |
+      路口右转，{permission_status}。
+      右侧{pedestrian_cyclist_assessment}。
+      决策：执行右转。
+
+  right_turn_cut_corner:
+    required_components:
+      - road_events:
+          focus: ["corner geometry", "curb distance"]
+      - lane_lanelines:
+          focus: ["turn path"]
+    template: |
+      右转路径偏内，距内侧边界{distance}m。
+      {cut_risk_assessment}。
+      决策：{correction_or_proceed}。
+
+  right_turn_low_speed:
+    required_components:
+      - road_events:
+          focus: ["turn geometry", "reasonable speed"]
+      - critical_objects:
+          focus: ["any obstacles causing slow speed"]
+    template: |
+      右转速度{current_speed}kph，合理速度{expected_speed}kph。
+      低速原因：{reason}。
+      决策：{speed_adjustment}。
+
+  uturn_normal:
+    required_components:
+      - road_events:
+          focus: ["U-turn space", "turn radius needed"]
+      - critical_objects:
+          focus: ["oncoming traffic", "following traffic"]
+      - traffic_lights:
+          focus: ["U-turn permission"]
+    template: |
+      执行U-turn，可用空间{space}m。
+      对向{oncoming_assessment}，后方{following_assessment}。
+      决策：执行掉头。
+
+  uturn_blind_spot:
+    required_components:
+      - critical_objects:
+          focus: ["potential hidden vehicles"]
+          uncertainty: "high"
+      - road_events:
+          focus: ["visibility limitations"]
+    template: |
+      U-turn存在盲区，{blind_spot_location}方向视野受限。
+      可能存在{potential_risks}。
+      不确定性：高。
+      决策：减速谨慎掉头，加强观察。
+
+  uturn_interaction:
+    required_components:
+      - critical_objects:
+          focus: ["interacting vehicles", "right of way"]
+      - traffic_lights:
+          focus: ["signal status"]
+    template: |
+      U-turn时与{interacting_vehicle}存在交互。
+      路权情况：{right_of_way}。
+      决策：{interaction_strategy}。
+
+  kturn:
+    required_components:
+      - road_events:
+          focus: ["available space", "obstacle locations"]
+      - critical_objects:
+          focus: ["surrounding traffic", "pedestrians"]
+    template: |
+      空间受限需要K-turn，可用宽度{width}m。
+      周围{surrounding_assessment}。
+      预计需要{turns}次调整。
+      决策：执行K-turn。
+
+  guidance_line_following:
+    required_components:
+      - lane_lanelines:
+          focus: ["guidance line position", "following accuracy"]
+      - road_events:
+          focus: ["intersection layout"]
+    template: |
+      路口有引导线，引导方向{direction}。
+      当前遵从程度{following_assessment}。
+      决策：沿引导线行驶。
+
+# ============================================================
+# 避障场景 (Obstacle Avoidance) Critical Components模板
+# ============================================================
+obstacle_avoidance_components:
+  static_obstacle_in_lane:
+    required_components:
+      - critical_objects:
+          focus: ["obstacle type", "size", "position in lane"]
+      - lane_lanelines:
+          focus: ["in-lane clearance", "nudge space"]
+    template: |
+      前方{distance}m处有{obstacle_type}，占据车道{position}。
+      车道内可用避让空间{clearance}m。
+      决策：道内偏移{direction}避让。
+
+  static_obstacle_borrow_lane:
+    required_components:
+      - critical_objects:
+          focus: ["obstacle", "opposing/adjacent lane traffic"]
+      - lane_lanelines:
+          focus: ["lane to borrow", "lane marking type"]
+    template: |
+      {obstacle_type}阻挡车道，需要借{direction}道绕行。
+      {borrow_lane}车道{traffic_assessment}。
+      决策：借道绕行后回到原车道。
+
+  slow_stationary_vehicle:
+    required_components:
+      - critical_objects:
+          focus: ["vehicle type", "reason for stopping", "duration estimate"]
+    template: |
+      前方{distance}m处有{vehicle_status}车辆。
+      {reason_assessment}。
+      决策：{wait_or_bypass}。
+
+  construction_zone:
+    required_components:
+      - critical_objects:
+          focus: ["construction workers", "equipment"]
+      - road_events:
+          focus: ["lane closure", "detour"]
+      - odd_constraints:
+          focus: ["speed limit in zone"]
+    template: |
+      前方施工区域，{construction_assessment}。
+      {lane_closure_info}，限速{speed_limit}kph。
+      决策：{construction_strategy}。
+
+  lead_cutout_reveal:
+    required_components:
+      - critical_objects:
+          focus: ["lead vehicle cutout", "revealed obstacle"]
+          uncertainty: "high - sudden reveal"
+      - lane_lanelines:
+          focus: ["available response space"]
+    template: |
+      前车突然向{direction}切出，露出前方{revealed_obstacle}。
+      距障碍物{distance}m，可用反应时间{time}s。
+      不确定性：高。
+      决策：紧急{action}。
+
+  vru_avoidance:
+    required_components:
+      - critical_objects:
+          focus: ["VRU type", "position", "motion prediction"]
+      - lane_lanelines:
+          focus: ["avoidance space"]
+    template: |
+      {vru_type}位于{position}，{motion_assessment}。
+      需要{avoidance_type}避让，保持安全距离{safe_distance}m。
+      决策：{avoidance_action}。
+
+  small_obstacle:
+    required_components:
+      - critical_objects:
+          focus: ["obstacle type", "size", "risk level"]
+      - lane_lanelines:
+          focus: ["avoidance necessity"]
+    template: |
+      检测到{obstacle_type}，大小约{size}。
+      {risk_assessment}。
+      决策：{avoid_or_ignore}。
+
+  puddle_pothole_avoidance:
+    required_components:
+      - road_events:
+          focus: ["puddle/pothole location", "size", "depth estimate"]
+      - lane_lanelines:
+          focus: ["avoidance direction"]
+    template: |
+      前方{location}处有{type}，大小约{size}。
+      决策：向{direction}偏移避让。
+
+  intersection_obstacle_avoidance:
+    required_components:
+      - critical_objects:
+          focus: ["obstacle in intersection"]
+      - road_events:
+          focus: ["intersection layout", "alternative path"]
+      - routing_intent:
+          focus: ["through path"]
+    template: |
+      路口内{position}处有{obstacle}。
+      影响{path_impact}。
+      决策：{avoidance_strategy}同时完成通行。
+
+# ============================================================
+# 特殊设施场景 (Special Facilities) Critical Components模板
+# ============================================================
+special_facilities_components:
+  toll_etc_lane:
+    required_components:
+      - road_events:
+          focus: ["ETC lane position", "lane status"]
+      - critical_objects:
+          focus: ["queue situation"]
+    template: |
+      选择ETC通道{lane_number}。
+      通道状态{status}，前方{queue_info}。
+      决策：保持速度通过ETC。
+
+  toll_manual_lane:
+    required_components:
+      - road_events:
+          focus: ["manual lane position"]
+      - critical_objects:
+          focus: ["queue length"]
+    template: |
+      选择人工通道{lane_number}。
+      排队{queue_length}辆，预计等待{wait_time}。
+      决策：排队等待缴费。
+
+  toll_plaza_lane_selection:
+    required_components:
+      - road_events:
+          focus: ["plaza layout", "available lanes"]
+      - critical_objects:
+          focus: ["traffic distribution"]
+      - routing_intent:
+          focus: ["lane type preference"]
+    template: |
+      收费站前广场，可选通道{available_lanes}。
+      各通道排队情况{queue_distribution}。
+      决策：选择{target_lane}通道。
+
+  toll_gate_passage:
+    required_components:
+      - road_events:
+          focus: ["gate status", "channel width"]
+      - critical_objects:
+          focus: ["gate bar position"]
+    template: |
+      闸机通道宽度{width}m，闸杆{bar_status}。
+      对正情况{alignment}。
+      决策：{passage_action}。
+
+  roundabout_entry_exit:
+    required_components:
+      - critical_objects:
+          focus: ["circulating traffic", "entry gap"]
+      - road_events:
+          focus: ["roundabout geometry"]
+      - routing_intent:
+          focus: ["target exit"]
+    template: |
+      {entry_or_exit}环岛，环内车流{traffic_assessment}。
+      目标{exit_info}。
+      决策：{entry_exit_action}。
+
+  roundabout_lane_selection:
+    required_components:
+      - routing_intent:
+          focus: ["exit number", "optimal lane"]
+      - critical_objects:
+          focus: ["vehicles in roundabout"]
+    template: |
+      环岛内行驶，目标出口{exit}。
+      当前在{current_lane}，需要{lane_change_need}。
+      决策：{lane_strategy}。
+
+  gate_resume_after_open:
+    required_components:
+      - critical_objects:
+          focus: ["gate bar status"]
+      - road_events:
+          focus: ["path ahead"]
+    template: |
+      闸杆{bar_action}，前方{path_clear}。
+      决策：起步通过。
+
+  gate_turn_cut_corner:
+    required_components:
+      - road_events:
+          focus: ["turn geometry at gate"]
+      - critical_objects:
+          focus: ["gate equipment proximity"]
+    template: |
+      闸机前转弯，转弯半径{radius}m。
+      距闸机设备{distance}m。
+      决策：{turn_adjustment}。
+
+# ============================================================
+# 安全场景 (Safety Critical) Critical Components模板
+# ============================================================
+safety_critical_components:
+  aeb_vehicle:
+    required_components:
+      - critical_objects:
+          focus: ["target vehicle", "TTC", "collision risk"]
+      - lane_lanelines:
+          focus: ["lateral escape option"]
+    template: |
+      检测到与{vehicle_type}碰撞风险，TTC={ttc}s。
+      当前速度{speed}kph，需要减速度{decel}m/s²。
+      触发AEB紧急制动。
+
+  aeb_vru:
+    required_components:
+      - critical_objects:
+          focus: ["VRU type", "TTC", "VRU motion"]
+      - lane_lanelines:
+          focus: ["evasion space"]
+    template: |
+      检测到与{vru_type}碰撞风险，TTC={ttc}s。
+      VRU状态{vru_status}。
+      触发AEB紧急制动。
+
+  aeb_large_irregular_vehicle:
+    required_components:
+      - critical_objects:
+          focus: ["vehicle type", "detection difficulty", "TTC"]
+    template: |
+      检测到{vehicle_type}，碰撞风险高。
+      目标特征{characteristics}，TTC={ttc}s。
+      触发AEB紧急制动。
+
+  emergency_maneuver:
+    required_components:
+      - critical_objects:
+          focus: ["emergency source", "collision risk"]
+      - lane_lanelines:
+          focus: ["escape route"]
+    template: |
+      紧急情况：{emergency_source}。
+      碰撞风险{risk_level}，可用逃逸路径{escape_path}。
+      决策：紧急{maneuver_type}。
+
+# ============================================================
+# 特殊环境场景 (Special Environment) Critical Components模板
+# ============================================================
+special_environment_components:
+  high_curvature_curve:
+    required_components:
+      - road_events:
+          focus: ["curvature", "curve length", "banking"]
+      - lane_lanelines:
+          focus: ["lane width in curve"]
+    template: |
+      前方弯道曲率{curvature}，长度{length}m。
+      安全通过速度{safe_speed}kph，当前速度{current_speed}kph。
+      决策：减速至{target_speed}kph。
+
+  narrow_road:
+    required_components:
+      - lane_lanelines:
+          focus: ["road width", "usable width"]
+      - critical_objects:
+          focus: ["obstacles on sides"]
+    template: |
+      窄道宽度{width}m，两侧{side_objects}。
+      可用通行宽度{usable_width}m。
+      决策：{narrow_strategy}。
+
+  slope:
+    required_components:
+      - road_events:
+          focus: ["grade", "slope direction", "length"]
+    template: |
+      {uphill_downhill}坡道，坡度{grade}%，长度{length}m。
+      决策：调整动力输出{power_adjustment}。
+
+  tunnel:
+    required_components:
+      - road_events:
+          focus: ["tunnel length", "lighting condition"]
+      - odd_constraints:
+          focus: ["visibility change"]
+    template: |
+      进入隧道，长度{length}m。
+      光照变化{lighting_change}。
+      决策：{tunnel_strategy}。
+
+  rural_road:
+    required_components:
+      - road_events:
+          focus: ["road surface", "road marking quality"]
+      - odd_constraints:
+          focus: ["unexpected obstacles likelihood"]
+    template: |
+      乡村道路，路面状况{surface_condition}。
+      道路标识{marking_quality}。
+      决策：{rural_strategy}。
+
+  adverse_weather_rain_fog:
+    required_components:
+      - odd_constraints:
+          focus: ["weather type", "visibility", "road surface condition"]
+    template: |
+      {weather_type}天气，能见度{visibility}m。
+      路面{surface_condition}。
+      决策：降速至{target_speed}kph，增加跟车距离。
+
+  adverse_weather_snow:
+    required_components:
+      - odd_constraints:
+          focus: ["snow coverage", "road grip estimate"]
+    template: |
+      积雪路面，覆盖程度{coverage}。
+      附着力评估{grip_estimate}。
+      决策：{snow_strategy}。
+
+  lighting_glare_low_light:
+    required_components:
+      - odd_constraints:
+          focus: ["lighting type", "impact on perception"]
+    template: |
+      {lighting_type}条件，{impact_assessment}。
+      决策：{lighting_strategy}。

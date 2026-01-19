@@ -1,0 +1,202 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "coc_lite_output_v1.0.0",
+  "title": "CoC Lite Output",
+  "description": "挑战者方案的 CoC 输出格式（简化版）",
+  "type": "object",
+  "required": ["version", "clip_id", "l1_scenario", "keyframe", "driving_decision", "coc_trace"],
+  
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "数据格式版本",
+      "const": "lite-1.0.0"
+    },
+    
+    "clip_id": {
+      "type": "string",
+      "description": "数据片段唯一标识",
+      "minLength": 1
+    },
+    
+    "l1_scenario": {
+      "type": "string",
+      "enum": ["reactive_agent", "reactive_road", "reactive_rule", "proactive", "safety"],
+      "description": "L1 场景分类（仅 L1，不细分 L2/L3）"
+    },
+    
+    "scenario_description": {
+      "type": "string",
+      "description": "场景的自然语言描述（替代 L2/L3 分类）",
+      "examples": [
+        "左侧车辆紧急切入",
+        "行人横穿马路",
+        "前方盲区减速",
+        "导航换道至右侧车道"
+      ]
+    },
+    
+    "keyframe": {
+      "type": "object",
+      "description": "关键帧信息",
+      "required": ["timestamp", "type"],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "关键帧时间戳"
+        },
+        "frame_idx": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "关键帧索引（可选）"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["reactive", "proactive"],
+          "description": "关键帧类型：reactive=单一时间点，proactive=时间范围"
+        },
+        "range_start": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Proactive 场景范围起始（当 type=proactive 时必填）"
+        },
+        "range_end": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Proactive 场景范围结束（当 type=proactive 时必填）"
+        },
+        "keyframe_rationale": {
+          "type": "string",
+          "description": "Keyframe 选择的理由（LLM 生成时填写，便于审核）",
+          "examples": [
+            "选择他车车轮越过车道线的时刻作为 Keyframe",
+            "选择 VRU 首次进入视野的时刻作为 Keyframe"
+          ]
+        }
+      }
+    },
+    
+    "time_range": {
+      "type": "object",
+      "description": "数据打包的时间范围",
+      "properties": {
+        "start_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    
+    "driving_decision": {
+      "type": "object",
+      "description": "驾驶决策（闭集，必须选择）",
+      "required": ["longitudinal", "lateral"],
+      "properties": {
+        "longitudinal": {
+          "type": "string",
+          "enum": [
+            "set_speed_tracking",
+            "lead_following",
+            "road_speed_adaptation",
+            "gap_matching",
+            "acceleration_for_passing",
+            "yield_to_agent",
+            "stop_for_regulation",
+            "stop_for_obstacle",
+            "resume"
+          ],
+          "description": "纵向决策"
+        },
+        "lateral": {
+          "type": "string",
+          "enum": [
+            "lane_keeping",
+            "in_lane_nudge",
+            "out_of_lane_nudge",
+            "lane_change",
+            "merge_or_split",
+            "turn",
+            "pull_over",
+            "maneuver_abort",
+            "reverse"
+          ],
+          "description": "横向决策"
+        },
+        "lateral_direction": {
+          "type": ["string", "null"],
+          "enum": ["left", "right", "uturn", null],
+          "description": "横向决策方向（当横向决策需要方向时填写）"
+        }
+      }
+    },
+    
+    "critical_components": {
+      "type": "object",
+      "description": "关键因素（简化版，自由格式）",
+      "properties": {
+        "primary_factors": {
+          "type": "array",
+          "description": "主要影响因素列表",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            ["左侧大车切入，TTC=2.5s", "切入车辆未打转向灯"],
+            ["前方 50m 处有盲区", "可能有横向来车"]
+          ]
+        },
+        "uncertainty": {
+          "type": "string",
+          "enum": ["low", "high"],
+          "description": "整体不确定性水平"
+        },
+        "uncertainty_reason": {
+          "type": "string",
+          "description": "不确定性原因（当 uncertainty=high 时填写）"
+        }
+      }
+    },
+    
+    "coc_trace": {
+      "type": "string",
+      "minLength": 20,
+      "description": "CoC 推理链文本（核心输出）"
+    },
+    
+    "metadata": {
+      "type": "object",
+      "description": "元数据",
+      "properties": {
+        "generation_method": {
+          "type": "string",
+          "enum": ["human", "llm", "hybrid"],
+          "description": "生成方式"
+        },
+        "llm_model": {
+          "type": "string",
+          "description": "使用的 LLM 模型（当 generation_method 包含 llm 时）"
+        },
+        "annotator_id": {
+          "type": "string",
+          "description": "标注员 ID（人工标注时）"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "置信度（LLM 自评或人工评估）"
+        },
+        "review_status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "description": "审核状态"
+        }
+      }
+    }
+  }
+}

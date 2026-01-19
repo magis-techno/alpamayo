@@ -1,0 +1,57 @@
+{
+  "version": "2.0.0",
+  "clip_id": "clip_20260115_110000_002",
+  "description": "导航换道场景标注示例 - 因即将驶出而向右换道",
+  
+  "scenario": {
+    "l1": "proactive",
+    "l2": "lane_change",
+    "l3": "navigation",
+    "full_id": "proactive.lane_change.navigation"
+  },
+  
+  "keyframe": {
+    "timestamp": "2026-01-15T11:00:15.000Z",
+    "frame_idx": 150,
+    "type": "proactive",
+    "range_start": "2026-01-15T11:00:10.000Z",
+    "range_end": "2026-01-15T11:00:25.000Z"
+  },
+  
+  "time_range": {
+    "start_timestamp": "2026-01-15T11:00:06.000Z",
+    "end_timestamp": "2026-01-15T11:00:26.000Z",
+    "start_frame_idx": 60,
+    "end_frame_idx": 260
+  },
+  
+  "driving_decision": {
+    "longitudinal": "gap_matching",
+    "lateral": "lane_change",
+    "lateral_direction": "right"
+  },
+  
+  "critical_components": [
+    {
+      "description": "导航指示前方需要从出口驶出，需换至右侧车道"
+    },
+    {
+      "description": "目标车道有合适的间隙，前后车距离充足，可以安全换入",
+      "uncertainty": "low"
+    },
+    {
+      "description": "右侧为虚线，换道合法"
+    }
+  ],
+  
+  "coc_trace": "导航指示前方需要驶出，需换至右侧车道。目标车道有合适的间隙，前后车距离充足。决策：调整速度匹配目标车流，执行向右换道。",
+  
+  "metadata": {
+    "annotator_id": "annotator_002",
+    "annotation_time": "2026-01-15T15:00:00.000Z",
+    "annotation_duration_sec": 180,
+    "quality_flags": [],
+    "reviewer_id": "reviewer_002",
+    "review_time": "2026-01-15T17:00:00.000Z"
+  }
+}

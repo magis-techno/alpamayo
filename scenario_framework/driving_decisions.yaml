@@ -1,0 +1,430 @@
+# 驾驶决策闭集定义 (Driving Decision Closed Set)
+# CoC标注的核心决策类型，确保标注一致性
+# Version: 1.0.0
+
+metadata:
+  version: "1.0.0"
+  description: "驾驶决策闭集定义，用于CoC标注中的决策类型选择"
+  reference: "Alpamayo-R1 Paper Table 1"
+  note: "每条数据最多标注一个纵向决策和一个横向决策，或标注为None"
+
+# ============================================================
+# 纵向决策 (Longitudinal Decisions) - 9种
+# ============================================================
+longitudinal_decisions:
+  - id: set_speed_tracking
+    name_zh: 速度保持
+    name_en: Set Speed Tracking
+    definition: 无约束下保持或达到目标速度
+    excludes:
+      - 跟车逻辑
+      - 让行逻辑
+      - 刹停逻辑
+    typical_verbs:
+      - maintain
+      - cruise
+      - accelerate to target
+    example_traces:
+      - "前方道路畅通，无障碍物，保持当前速度行驶"
+      - "加速至道路限速"
+
+  - id: lead_following
+    name_zh: 跟车
+    name_en: Lead Following
+    definition: 对同向前车保持安全时距
+    excludes:
+      - 道路几何减速
+      - Gap匹配
+      - 让行非前车
+    typical_verbs:
+      - follow
+      - maintain gap
+      - adjust to lead
+    example_traces:
+      - "前方有慢速车辆，保持安全跟车距离"
+      - "跟随前车减速"
+
+  - id: road_speed_adaptation
+    name_zh: 道路减速
+    name_en: Road Speed Adaptation
+    definition: 因道路几何特征（弯道、坡道、减速带）减速
+    excludes:
+      - 因前车减速
+      - 因交通管制减速
+    typical_verbs:
+      - slow for curve
+      - adapt to road
+      - reduce speed for geometry
+    example_traces:
+      - "前方有急弯，提前减速"
+      - "通过减速带，降低速度"
+
+  - id: gap_matching
+    name_zh: Gap匹配
+    name_en: Gap Matching
+    definition: 为准备横向机动调整速度匹配目标车流
+    excludes:
+      - 普通跟车
+      - 超车加速
+    typical_verbs:
+      - match speed
+      - search gap
+      - prepare for merge
+    example_traces:
+      - "准备换道，调整速度匹配目标车道车流"
+      - "减速等待合适的换道时机"
+
+  - id: acceleration_for_passing
+    name_zh: 超车加速
+    name_en: Acceleration for Passing
+    definition: 配合横向机动的加速超车
+    excludes:
+      - 普通加速
+      - Gap匹配减速
+    typical_verbs:
+      - accelerate to pass
+      - overtake
+      - speed up for lane change
+    example_traces:
+      - "加速超越前方慢车"
+      - "换道超车，提高车速"
+
+  - id: yield_to_agent
+    name_zh: 让行
+    name_en: Yield to Agent
+    definition: 对有路权的交通参与者让行（VRU、侧向来车、cutin）
+    excludes:
+      - 对前车跟车
+      - 规则性刹停
+    typical_verbs:
+      - yield
+      - give way
+      - slow for
+      - decelerate for
+    example_traces:
+      - "行人横穿，减速让行"
+      - "右侧车辆切入，减速避让"
+      - "让行直行车辆"
+
+  - id: stop_for_regulation
+    name_zh: 规则刹停
+    name_en: Stop for Regulation
+    definition: 对红灯、停止线、铁路等规则性刹停
+    excludes:
+      - 因障碍物刹停
+      - 让行刹停
+    typical_verbs:
+      - stop for red
+      - stop at line
+      - comply with signal
+    example_traces:
+      - "红灯，在停止线前刹停"
+      - "停止标志，完全停车"
+
+  - id: stop_for_obstacle
+    name_zh: 障碍刹停
+    name_en: Stop for Obstacle
+    definition: 对前方障碍物刹停
+    excludes:
+      - 规则性刹停
+      - 跟车
+    typical_verbs:
+      - stop for obstacle
+      - halt
+      - emergency stop
+    example_traces:
+      - "前方道路被阻挡，刹停等待"
+      - "发现静止障碍物，紧急刹停"
+
+  - id: resume
+    name_zh: 起步
+    name_en: Resume
+    definition: 从静止状态起步
+    excludes:
+      - 跟车加速
+      - 超车加速
+    typical_verbs:
+      - resume
+      - start moving
+      - depart
+    example_traces:
+      - "绿灯亮起，起步通行"
+      - "前车开始移动，跟随起步"
+
+# ============================================================
+# 横向决策 (Lateral Decisions) - 9种
+# ============================================================
+lateral_decisions:
+  - id: lane_keeping
+    name_zh: 居中保持
+    name_en: Lane Keeping
+    definition: 在车道内居中行驶，不跨越车道线
+    excludes:
+      - 任何偏移动作
+      - 换道
+    typical_verbs:
+      - keep lane
+      - maintain center
+      - stay in lane
+    example_traces:
+      - "保持车道居中行驶"
+      - "沿当前车道直行"
+
+  - id: in_lane_nudge
+    name_zh: 道内偏移
+    name_en: In-lane Nudge
+    definition: 不跨线的车道内避让偏移，向左或向右
+    excludes:
+      - 跨线偏移
+      - 换道
+    direction_required: true  # 需要指明left/right
+    typical_verbs:
+      - nudge left/right
+      - offset within lane
+      - adjust position
+    example_traces:
+      - "向左偏移，增加与右侧障碍物的距离"
+      - "在车道内向右偏移避让"
+
+  - id: out_of_lane_nudge
+    name_zh: 借道偏移
+    name_en: Out-of-lane Nudge
+    definition: 短暂跨线绕行后回到原车道
+    excludes:
+      - 完整换道
+      - 道内偏移
+    direction_required: true  # 需要指明left/right
+    typical_verbs:
+      - borrow lane
+      - cross line briefly
+      - straddle avoidance
+    example_traces:
+      - "借道超越静止障碍物后回到原车道"
+      - "短暂跨线避让后回中"
+
+  - id: lane_change
+    name_zh: 换道
+    name_en: Lane Change
+    definition: 完整的相邻车道转移，带有gap协商
+    excludes:
+      - 临时跨线
+      - Merge/Split
+    direction_required: true  # 需要指明left/right
+    typical_verbs:
+      - change lane
+      - switch to
+      - move to adjacent lane
+    example_traces:
+      - "换道至左侧车道"
+      - "向右换道准备驶出"
+
+  - id: merge_or_split
+    name_zh: Merge/Split
+    name_en: Merge or Split
+    definition: 匝道汇入汇出、车道合并分离，非同一道路的车道切换
+    excludes:
+      - 同一道路的换道
+    typical_verbs:
+      - merge into
+      - split from
+      - enter mainline
+      - exit to ramp
+    example_traces:
+      - "从匝道汇入主路"
+      - "驶离主路进入匝道"
+
+  - id: turn
+    name_zh: 转弯
+    name_en: Turn
+    definition: 路口/环岛/U-turn的转向，航向角有显著变化
+    excludes:
+      - 换道
+      - 弯道跟随
+    direction_required: true  # 需要指明left/right/u-turn
+    typical_verbs:
+      - turn left/right
+      - make U-turn
+      - enter roundabout
+    example_traces:
+      - "路口左转"
+      - "环岛出口右转"
+      - "执行U-turn掉头"
+
+  - id: pull_over
+    name_zh: 靠边
+    name_en: Pull Over
+    definition: 向路边或停车区靠近
+    excludes:
+      - 换道
+      - 道内偏移
+    typical_verbs:
+      - pull over
+      - approach curb
+      - move to shoulder
+    example_traces:
+      - "靠边停车"
+      - "向路边临停区靠近"
+
+  - id: maneuver_abort
+    name_zh: 机动中止
+    name_en: Maneuver Abort
+    definition: 取消进行中的横向机动并回中
+    excludes:
+      - 完成机动
+      - 新的机动
+    typical_verbs:
+      - abort
+      - cancel maneuver
+      - return to center
+    example_traces:
+      - "换道中止，返回原车道"
+      - "取消超车，回到原位置"
+
+  - id: reverse
+    name_zh: 倒车
+    name_en: Reverse
+    definition: 向后行驶
+    excludes:
+      - 前进
+    typical_verbs:
+      - reverse
+      - back up
+      - move backward
+    example_traces:
+      - "倒车入库"
+      - "后退让出空间"
+
+# ============================================================
+# 决策组合规则
+# ============================================================
+combination_rules:
+  description: "每条数据标注时，从纵向和横向各选最多一个决策"
+  
+  valid_combinations:
+    - longitudinal: set_speed_tracking
+      lateral: lane_keeping
+      scenario: "正常巡航"
+    
+    - longitudinal: lead_following
+      lateral: lane_keeping
+      scenario: "跟车行驶"
+    
+    - longitudinal: gap_matching
+      lateral: lane_change
+      scenario: "换道准备和执行"
+    
+    - longitudinal: yield_to_agent
+      lateral: in_lane_nudge
+      scenario: "让行同时避让"
+    
+    - longitudinal: stop_for_regulation
+      lateral: turn
+      scenario: "路口等待后转弯"
+    
+    - longitudinal: resume
+      lateral: merge_or_split
+      scenario: "从匝道起步汇入"
+
+  special_cases:
+    - case: "None + None"
+      description: "无明确决策点的片段，通常不作为CoC标注对象"
+    
+    - case: "纵向 + None"
+      description: "纯纵向决策，横向保持lane_keeping"
+    
+    - case: "None + 横向"
+      description: "纯横向决策，纵向可能为set_speed_tracking或lead_following"
+
+# ============================================================
+# 场景到决策的典型映射
+# ============================================================
+scenario_decision_mapping:
+  # 巡航场景
+  cruising:
+    set_speed_tracking:
+      longitudinal: set_speed_tracking
+      lateral: lane_keeping
+    lead_following_highway:
+      longitudinal: lead_following
+      lateral: lane_keeping
+    lead_following_congestion:
+      longitudinal: lead_following
+      lateral: lane_keeping
+    resume_at_green:
+      longitudinal: resume
+      lateral: [lane_keeping, turn]
+    stop_for_red:
+      longitudinal: stop_for_regulation
+      lateral: lane_keeping
+  
+  # 交互场景
+  interaction:
+    cutin_urgent:
+      longitudinal: yield_to_agent
+      lateral: [lane_keeping, in_lane_nudge]
+    cutin_slow:
+      longitudinal: yield_to_agent
+      lateral: lane_keeping
+    vru_crossing:
+      longitudinal: yield_to_agent
+      lateral: [lane_keeping, in_lane_nudge]
+    vru_hidden_emergence:
+      longitudinal: [yield_to_agent, stop_for_obstacle]
+      lateral: [lane_keeping, in_lane_nudge]
+  
+  # 换道场景
+  lane_change:
+    nav_lc_urban:
+      longitudinal: gap_matching
+      lateral: lane_change
+    nav_lc_highway:
+      longitudinal: gap_matching
+      lateral: lane_change
+    merge_entry:
+      longitudinal: gap_matching
+      lateral: merge_or_split
+    efficiency_lc:
+      longitudinal: [gap_matching, acceleration_for_passing]
+      lateral: lane_change
+    lc_abort:
+      longitudinal: [lead_following, yield_to_agent]
+      lateral: maneuver_abort
+  
+  # 路口场景
+  intersection:
+    left_turn_normal:
+      longitudinal: [road_speed_adaptation, yield_to_agent]
+      lateral: turn
+    right_turn_normal:
+      longitudinal: road_speed_adaptation
+      lateral: turn
+    uturn_normal:
+      longitudinal: road_speed_adaptation
+      lateral: turn
+    uturn_interaction:
+      longitudinal: yield_to_agent
+      lateral: turn
+  
+  # 避障场景
+  obstacle_avoidance:
+    static_obstacle_in_lane:
+      longitudinal: [yield_to_agent, stop_for_obstacle]
+      lateral: in_lane_nudge
+    static_obstacle_borrow_lane:
+      longitudinal: [yield_to_agent, road_speed_adaptation]
+      lateral: out_of_lane_nudge
+    lead_cutout_reveal:
+      longitudinal: [stop_for_obstacle, yield_to_agent]
+      lateral: [lane_keeping, in_lane_nudge]
+  
+  # 安全场景
+  safety_critical:
+    aeb_vehicle:
+      longitudinal: stop_for_obstacle
+      lateral: [lane_keeping, in_lane_nudge]
+    aeb_vru:
+      longitudinal: stop_for_obstacle
+      lateral: [lane_keeping, in_lane_nudge]
+    emergency_maneuver:
+      longitudinal: stop_for_obstacle
+      lateral: [in_lane_nudge, out_of_lane_nudge, maneuver_abort]

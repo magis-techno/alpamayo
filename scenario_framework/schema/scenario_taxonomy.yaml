@@ -1,0 +1,464 @@
+# 场景分类体系定义
+# Version: 1.0.0
+
+version: "1.0.0"
+description: "统一场景分类体系，支持数据均衡去重和CoC标注"
+created_at: "2026-01-15"
+
+# ==============================================================================
+# L1 大类定义
+# ==============================================================================
+l1_categories:
+  - id: reactive_agent
+    name_zh: 交互响应
+    name_en: Reactive to Agent
+    definition: 对动态交通参与者的响应
+    description: 他车/VRU等动态目标触发ego的决策
+
+  - id: reactive_road
+    name_zh: 路况适应
+    name_en: Reactive to Road
+    definition: 对道路状况的适应性响应
+    description: 道路几何/盲区/路面等触发ego的决策
+
+  - id: reactive_rule
+    name_zh: 规则遵从
+    name_en: Reactive to Regulation
+    definition: 对交通规则/信号的响应
+    description: 信号灯/标志/特殊设施触发ego的决策
+
+  - id: proactive
+    name_zh: 主动机动
+    name_en: Proactive Maneuver
+    definition: ego主动发起的机动
+    description: 换道/避障/转弯等主动行为
+
+  - id: safety
+    name_zh: 安全临界
+    name_en: Safety Critical
+    definition: 安全临界场景
+    description: AEB触发/紧急避险等安全相关场景
+
+# ==============================================================================
+# L2 场景定义
+# ==============================================================================
+l2_scenarios:
+  # --------------------------------------------------------------------------
+  # reactive_agent: 交互响应
+  # --------------------------------------------------------------------------
+  reactive_agent:
+    - id: cutin
+      name_zh: Cutin响应
+      name_en: Cutin Response
+      definition: 他车切入自车前方
+      typical_decisions:
+        longitudinal: [yield_to_agent]
+        lateral: [lane_keeping, in_lane_nudge]
+      mining_conditions:
+        - 他车横向位移 > 0.5m 进入自车车道
+        - 自车与他车存在纵向重叠风险
+      labeling_spec_ref: "02_labeling_spec.md#cutin"
+
+    - id: vru_crossing
+      name_zh: VRU横穿响应
+      name_en: VRU Crossing Response
+      definition: VRU横向或斜向穿越道路
+      typical_decisions:
+        longitudinal: [yield_to_agent]
+        lateral: [lane_keeping, in_lane_nudge]
+      mining_conditions:
+        - VRU进入自车轨迹横向7m范围
+        - VRU运动方向与自车路径有交叉
+      labeling_spec_ref: "02_labeling_spec.md#vru_crossing"
+
+    - id: vru_emergence
+      name_zh: VRU突现响应
+      name_en: VRU Emergence Response
+      definition: VRU从遮挡后突然出现
+      typical_decisions:
+        longitudinal: [yield_to_agent, stop_for_obstacle]
+        lateral: [lane_keeping, in_lane_nudge]
+      mining_conditions:
+        - VRU从遮挡后首次可见
+        - 存在碰撞风险
+      labeling_spec_ref: "02_labeling_spec.md#vru_emergence"
+
+    - id: vehicle_abnormal
+      name_zh: 他车异常响应
+      name_en: Abnormal Vehicle Response
+      definition: 他车异常行为（倒车/cutout等）
+      typical_decisions:
+        longitudinal: [yield_to_agent, stop_for_obstacle]
+        lateral: [lane_keeping]
+      mining_conditions:
+        - 他车倒车或突然cutout
+        - 影响自车行驶
+      labeling_spec_ref: "02_labeling_spec.md#vehicle_abnormal"
+
+    - id: intersection_interaction
+      name_zh: 路口交互
+      name_en: Intersection Interaction
+      definition: 路口内与其他车辆的交互博弈
+      typical_decisions:
+        longitudinal: [yield_to_agent]
+        lateral: [lane_keeping, turn]
+      mining_conditions:
+        - 自车在路口内
+        - 存在其他车辆交互
+      labeling_spec_ref: "02_labeling_spec.md#intersection_interaction"
+
+  # --------------------------------------------------------------------------
+  # reactive_road: 路况适应
+  # --------------------------------------------------------------------------
+  reactive_road:
+    - id: blind_spot_slowdown
+      name_zh: 盲区减速
+      name_en: Blind Spot Slowdown
+      definition: 因存在盲区需要减速
+      typical_decisions:
+        longitudinal: [road_speed_adaptation]
+        lateral: [lane_keeping]
+      mining_conditions:
+        - 存在视野盲区
+        - 自车因盲区减速
+      labeling_spec_ref: "02_labeling_spec.md#blind_spot_slowdown"
+
+    - id: geometry_adaptation
+      name_zh: 几何适应
+      name_en: Geometry Adaptation
+      definition: 弯道/坡道/窄道等几何特征适应
+      typical_decisions:
+        longitudinal: [road_speed_adaptation]
+        lateral: [lane_keeping]
+      mining_conditions:
+        - 道路存在明显几何特征
+        - 自车速度需要调整
+      labeling_spec_ref: "02_labeling_spec.md#geometry_adaptation"
+
+    - id: surface_adaptation
+      name_zh: 路面适应
+      name_en: Surface Adaptation
+      definition: 特殊路面条件（积雪/颠簸等）适应
+      typical_decisions:
+        longitudinal: [road_speed_adaptation]
+        lateral: [lane_keeping]
+      mining_conditions:
+        - 路面存在特殊条件
+        - 自车需要调整驾驶策略
+      labeling_spec_ref: "02_labeling_spec.md#surface_adaptation"
+
+  # --------------------------------------------------------------------------
+  # reactive_rule: 规则遵从
+  # --------------------------------------------------------------------------
+  reactive_rule:
+    - id: traffic_light_stop
+      name_zh: 信号灯刹停
+      name_en: Traffic Light Stop
+      definition: 红灯刹停
+      typical_decisions:
+        longitudinal: [stop_for_regulation]
+        lateral: [lane_keeping]
+      mining_conditions:
+        - 信号灯为红色或黄色
+        - 自车需要刹停
+      labeling_spec_ref: "02_labeling_spec.md#traffic_light_stop"
+
+    - id: traffic_light_resume
+      name_zh: 信号灯起步
+      name_en: Traffic Light Resume
+      definition: 绿灯起步
+      typical_decisions:
+        longitudinal: [resume]
+        lateral: [lane_keeping, turn]
+      mining_conditions:
+        - 信号灯变绿
+        - 自车从静止起步
+      labeling_spec_ref: "02_labeling_spec.md#traffic_light_resume"
+
+    - id: wait_area
+      name_zh: 待行区进出
+      name_en: Wait Area Entry/Exit
+      definition: 待行区进入或驶出
+      typical_decisions:
+        longitudinal: [resume, stop_for_regulation]
+        lateral: [lane_keeping]
+      mining_conditions:
+        - 存在待行区
+        - 自车进入或驶出待行区
+      labeling_spec_ref: "02_labeling_spec.md#wait_area"
+
+    - id: special_facility
+      name_zh: 特殊设施通行
+      name_en: Special Facility Passage
+      definition: 收费站/闸机/环岛等特殊设施通行
+      typical_decisions:
+        longitudinal: [road_speed_adaptation, stop_for_regulation, resume]
+        lateral: [lane_keeping, turn]
+      mining_conditions:
+        - 自车通过特殊设施
+      labeling_spec_ref: "02_labeling_spec.md#special_facility"
+
+  # --------------------------------------------------------------------------
+  # proactive: 主动机动
+  # --------------------------------------------------------------------------
+  proactive:
+    - id: lane_change
+      name_zh: 换道
+      name_en: Lane Change
+      definition: 主动发起的换道机动
+      typical_decisions:
+        longitudinal: [gap_matching, acceleration_for_passing]
+        lateral: [lane_change]
+      mining_conditions:
+        - 自车发起换道
+        - 存在横向位移
+      labeling_spec_ref: "02_labeling_spec.md#lane_change"
+
+    - id: obstacle_avoidance
+      name_zh: 避障
+      name_en: Obstacle Avoidance
+      definition: 对障碍物的主动避让
+      typical_decisions:
+        longitudinal: [yield_to_agent, road_speed_adaptation]
+        lateral: [in_lane_nudge, out_of_lane_nudge]
+      mining_conditions:
+        - 前方存在障碍物
+        - 自车主动避让
+      labeling_spec_ref: "02_labeling_spec.md#obstacle_avoidance"
+
+    - id: turn
+      name_zh: 路口转弯
+      name_en: Intersection Turn
+      definition: 路口内的转向机动
+      typical_decisions:
+        longitudinal: [road_speed_adaptation]
+        lateral: [turn]
+      mining_conditions:
+        - 自车在路口内
+        - 航向角有显著变化
+      labeling_spec_ref: "02_labeling_spec.md#turn"
+
+    - id: merge_split
+      name_zh: 汇入汇出
+      name_en: Merge/Split
+      definition: 匝道汇入或分离
+      typical_decisions:
+        longitudinal: [gap_matching]
+        lateral: [merge_or_split]
+      mining_conditions:
+        - 自车进行匝道汇入或汇出
+      labeling_spec_ref: "02_labeling_spec.md#merge_split"
+
+  # --------------------------------------------------------------------------
+  # safety: 安全临界
+  # --------------------------------------------------------------------------
+  safety:
+    - id: aeb_vehicle
+      name_zh: 对车AEB
+      name_en: AEB for Vehicle
+      definition: 对车辆触发AEB
+      typical_decisions:
+        longitudinal: [stop_for_obstacle]
+        lateral: [lane_keeping, in_lane_nudge]
+      mining_conditions:
+        - AEB触发
+        - 目标为车辆
+      labeling_spec_ref: "02_labeling_spec.md#aeb"
+
+    - id: aeb_vru
+      name_zh: 对VRU AEB
+      name_en: AEB for VRU
+      definition: 对VRU触发AEB
+      typical_decisions:
+        longitudinal: [stop_for_obstacle]
+        lateral: [lane_keeping, in_lane_nudge]
+      mining_conditions:
+        - AEB触发
+        - 目标为VRU
+      labeling_spec_ref: "02_labeling_spec.md#aeb"
+
+    - id: emergency_maneuver
+      name_zh: 紧急避险
+      name_en: Emergency Maneuver
+      definition: 紧急避险机动
+      typical_decisions:
+        longitudinal: [stop_for_obstacle]
+        lateral: [in_lane_nudge, out_of_lane_nudge, maneuver_abort]
+      mining_conditions:
+        - 存在紧急碰撞风险
+        - 执行紧急机动
+      labeling_spec_ref: "02_labeling_spec.md#emergency"
+
+# ==============================================================================
+# L3 变体定义
+# ==============================================================================
+l3_variants:
+  cutin:
+    - id: urgent
+      name_zh: 紧急Cutin
+      name_en: Urgent Cutin
+      condition: TTC < 3s
+      spec_diff: 起始时刻=keyframe-2s
+
+    - id: slow
+      name_zh: 缓慢Cutin
+      name_en: Slow Cutin
+      condition: TTC >= 3s
+      spec_diff: 起始时刻=keyframe-5s或转向灯
+
+    - id: large_vehicle
+      name_zh: 大车Cutin
+      name_en: Large Vehicle Cutin
+      condition: 切入车辆为大车/异形车
+      spec_diff: 需额外记录遮挡情况
+
+    - id: from_stationary
+      name_zh: 起步Cutin
+      name_en: Cutin from Stationary
+      condition: 他车从静止起步切入
+      spec_diff: 起始=他车开始移动
+
+  vru_crossing:
+    - id: horizontal
+      name_zh: 横穿
+      name_en: Horizontal Crossing
+      condition: VRU与道路垂直穿越
+      spec_diff: null
+
+    - id: diagonal
+      name_zh: 斜穿
+      name_en: Diagonal Crossing
+      condition: VRU与道路斜向穿越
+      spec_diff: null
+
+  blind_spot_slowdown:
+    - id: unsignalized
+      name_zh: 无灯路口盲区
+      name_en: Unsignalized Intersection Blind Spot
+      condition: 无信号灯路口存在盲区
+      spec_diff: null
+
+    - id: merge
+      name_zh: 汇入盲区
+      name_en: Merge Blind Spot
+      condition: 汇入场景存在盲区
+      spec_diff: null
+
+    - id: dynamic
+      name_zh: 动态遮挡盲区
+      name_en: Dynamic Occlusion Blind Spot
+      condition: 大车等造成动态遮挡
+      spec_diff: null
+
+  geometry_adaptation:
+    - id: curve
+      name_zh: 大曲率弯道
+      name_en: High Curvature Curve
+      condition: 道路曲率大
+      spec_diff: null
+
+    - id: slope
+      name_zh: 坡道
+      name_en: Slope
+      condition: 道路有明显坡度
+      spec_diff: null
+
+    - id: narrow
+      name_zh: 窄道
+      name_en: Narrow Road
+      condition: 道路宽度受限
+      spec_diff: null
+
+    - id: tunnel
+      name_zh: 隧道
+      name_en: Tunnel
+      condition: 在隧道内行驶
+      spec_diff: null
+
+  lane_change:
+    - id: navigation
+      name_zh: 导航换道
+      name_en: Navigation Lane Change
+      condition: 导航指示换道
+      spec_diff: 记录剩余距离
+
+    - id: efficiency
+      name_zh: 效率换道
+      name_en: Efficiency Lane Change
+      condition: 为提高效率换道
+      spec_diff: 记录速度差
+
+    - id: escape
+      name_zh: 脱困换道
+      name_en: Escape Lane Change
+      condition: 为脱离阻塞换道
+      spec_diff: 记录阻塞原因
+
+    - id: overtake
+      name_zh: 超车换道
+      name_en: Overtake Lane Change
+      condition: 为超车换道
+      spec_diff: 记录被超车辆
+
+  obstacle_avoidance:
+    - id: in_lane
+      name_zh: 道内避障
+      name_en: In-lane Avoidance
+      condition: 不跨线避让
+      spec_diff: 横向=in_lane_nudge
+
+    - id: borrow_lane
+      name_zh: 借道避障
+      name_en: Borrow Lane Avoidance
+      condition: 需要跨线借道
+      spec_diff: 横向=out_of_lane_nudge
+
+    - id: intersection
+      name_zh: 路口内避障
+      name_en: Intersection Avoidance
+      condition: 在路口内避障
+      spec_diff: 结合路口通行
+
+  turn:
+    - id: left_normal
+      name_zh: 常规左转
+      name_en: Normal Left Turn
+      condition: 标准左转
+      spec_diff: null
+
+    - id: left_cut_corner
+      name_zh: 左转内切
+      name_en: Left Turn Cut Corner
+      condition: 左转内切
+      spec_diff: 记录内切程度
+
+    - id: right_normal
+      name_zh: 常规右转
+      name_en: Normal Right Turn
+      condition: 标准右转
+      spec_diff: null
+
+    - id: uturn
+      name_zh: U-turn
+      name_en: U-turn
+      condition: 掉头
+      spec_diff: 记录掉头空间
+
+  special_facility:
+    - id: toll
+      name_zh: 收费站通行
+      name_en: Toll Station Passage
+      condition: 通过收费站
+      spec_diff: null
+
+    - id: gate
+      name_zh: 闸机通行
+      name_en: Gate Passage
+      condition: 通过闸机
+      spec_diff: null
+
+    - id: roundabout
+      name_zh: 环岛通行
+      name_en: Roundabout Passage
+      condition: 通过环岛
+      spec_diff: null

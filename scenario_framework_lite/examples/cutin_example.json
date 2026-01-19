@@ -1,0 +1,44 @@
+{
+  "version": "lite-1.0.0",
+  "clip_id": "clip_20260115_cutin_001",
+  
+  "l1_scenario": "reactive_agent",
+  "scenario_description": "左侧车辆切入，需要减速让行",
+  
+  "keyframe": {
+    "timestamp": "2026-01-15T10:30:15.500Z",
+    "frame_idx": 150,
+    "type": "reactive",
+    "keyframe_rationale": "他车车轮越过车道线进入 ego 车道的时刻"
+  },
+  
+  "time_range": {
+    "start_timestamp": "2026-01-15T10:30:13.500Z",
+    "end_timestamp": "2026-01-15T10:30:18.500Z"
+  },
+  
+  "driving_decision": {
+    "longitudinal": "yield_to_agent",
+    "lateral": "lane_keeping",
+    "lateral_direction": null
+  },
+  
+  "critical_components": {
+    "primary_factors": [
+      "左侧有车辆正在切入我的车道",
+      "切入车辆未打转向灯",
+      "切入时间较短，需要及时响应"
+    ],
+    "uncertainty": "low",
+    "uncertainty_reason": null
+  },
+  
+  "coc_trace": "左侧有车辆未打灯切入我的车道，切入时间较短。需要减速以保持安全跟车距离。决策：让行减速，保持车道。",
+  
+  "metadata": {
+    "generation_method": "llm",
+    "llm_model": "gpt-4-turbo",
+    "confidence": 0.92,
+    "review_status": "approved"
+  }
+}
